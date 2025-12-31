@@ -25,11 +25,11 @@ agnostic and built for fast, parallel execution with clear failure output.
 ```bash
 git clone <repo-url>
 cd sqlcheck
-python -m venv .venv
+uv sync
 source .venv/bin/activate
-pip install -U pip
-pip install -e .
 ```
+
+`uv sync` creates `.venv` by default and installs the `sqlcheck` entry point into it.
 
 ### Prerequisites
 
@@ -39,7 +39,7 @@ pip install -e .
 ### Dev dependencies
 
 ```bash
-pip install -e ".[dev]"
+uv sync --extra dev
 ```
 
 ### Install DuckDB CLI (Ubuntu)

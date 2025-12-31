@@ -1,4 +1,4 @@
-{{ success(name="basic insert") }}
+{{ success() }}
 
 CREATE TABLE t (id INT);
 INSERT INTO t VALUES (1);
