@@ -26,8 +26,8 @@ def success(
     sql_parsed: SQLParsed,
     status: ExecutionStatus,
     output: ExecutionOutput,
-    *_: Any,
-    **__: Any,
+    *_args: Any,
+    **_kwargs: Any,
 ) -> FunctionResult:
     if status.success:
         return FunctionResult(name="success", success=True)
@@ -39,10 +39,10 @@ def fail(
     sql_parsed: SQLParsed,
     status: ExecutionStatus,
     output: ExecutionOutput,
-    *_: Any,
+    *_args: Any,
     error_contains: str | None = None,
     error_regex: str | None = None,
-    **_: Any,
+    **_kwargs: Any,
 ) -> FunctionResult:
     if status.success:
         return FunctionResult(name="fail", success=False, message="Expected failure but execution succeeded")
