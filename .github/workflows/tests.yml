@@ -23,5 +23,5 @@ jobs:
         run: uv run python -m pip install duckdb duckdb-engine
       - name: Run SQLCheck against DuckDB in-memory
         env:
-          SQLCHECK_CONN_DUCKDB: duckdb:///:memory:
+          SQLCHECK_CONN_DUCKDB: "duckdb:///:memory:"
         run: uv run sqlcheck run tests/fixtures -c duckdb
