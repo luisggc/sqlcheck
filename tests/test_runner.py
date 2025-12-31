@@ -23,7 +23,7 @@ class FakeAdapter(Adapter):
 
 class TestRunner(unittest.TestCase):
     def test_build_test_case_defaults_to_success(self) -> None:
-        path = Path("/tmp/default.sqltest")
+        path = Path("/tmp/default.sql")
         path.write_text("SELECT 1;", encoding="utf-8")
         case = build_test_case(path)
         self.assertEqual(len(case.directives), 1)
@@ -31,7 +31,7 @@ class TestRunner(unittest.TestCase):
         path.unlink()
 
     def test_run_test_case_success(self) -> None:
-        path = Path("/tmp/success.sqltest")
+        path = Path("/tmp/success.sql")
         path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(True), default_registry())
@@ -39,7 +39,7 @@ class TestRunner(unittest.TestCase):
         path.unlink()
 
     def test_run_test_case_failure_expectation(self) -> None:
-        path = Path("/tmp/fail.sqltest")
+        path = Path("/tmp/fail.sql")
         path.write_text("SELECT 1; {{ fail(error_contains='boom') }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(False), default_registry())
@@ -47,8 +47,8 @@ class TestRunner(unittest.TestCase):
         path.unlink()
 
     def test_run_cases_parallel_and_serial(self) -> None:
-        path_a = Path("/tmp/parallel.sqltest")
-        path_b = Path("/tmp/serial.sqltest")
+        path_a = Path("/tmp/parallel.sql")
+        path_b = Path("/tmp/serial.sql")
         path_a.write_text("SELECT 1;", encoding="utf-8")
         path_b.write_text("SELECT 2; {{ success(serial=True) }}", encoding="utf-8")
         cases = [build_test_case(path_a), build_test_case(path_b)]
@@ -58,7 +58,7 @@ class TestRunner(unittest.TestCase):
         path_b.unlink()
 
     def test_custom_registry_function(self) -> None:
-        path = Path("/tmp/custom.sqltest")
+        path = Path("/tmp/custom.sql")
         path.write_text("SELECT 1; {{ custom(check='ok') }}", encoding="utf-8")
         case = build_test_case(path)
 

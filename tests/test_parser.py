@@ -25,7 +25,7 @@ class TestParser(unittest.TestCase):
         self.assertIn("SELECT 2", stripped)
 
     def test_parse_file_splits_statements(self) -> None:
-        path = Path("/tmp/test.sqltest")
+        path = Path("/tmp/test.sql")
         path.write_text("SELECT 1; SELECT 2;", encoding="utf-8")
         parsed = parse_file(path)
         self.assertEqual(len(parsed.sql_parsed.statements), 2)

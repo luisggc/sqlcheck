@@ -53,10 +53,10 @@ sudo install /tmp/duckdb_cli/duckdb /usr/local/bin/duckdb
 
 ## Quick start
 
-1. Create a SQL test file (default pattern: `**/*.sqltest`):
+1. Create a SQL test file (default pattern: `**/*.sql`):
 
 ```sql
--- tests/example.sqltest
+-- tests/example.sql
 CREATE TABLE t (id INT);
 INSERT INTO t VALUES (1);
 SELECT * FROM t;
@@ -67,7 +67,7 @@ SELECT * FROM t;
 2. Run sqlcheck:
 
 ```bash
-sqlcheck tests/ --pattern "**/*.sqltest" --engine duckdb
+sqlcheck tests/ --pattern "**/*.sql" --engine duckdb
 ```
 
 If any test fails, `sqlcheck` exits with a non-zero status code.
@@ -95,7 +95,7 @@ sqlcheck TARGET [options]
 
 **Options**
 
-- `--pattern`: Glob for discovery (default: `**/*.sqltest`).
+- `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
 - `--engine`: Execution adapter (default: `duckdb`).
 - `--duckdb-db`: DuckDB database path (default: `:memory:`).

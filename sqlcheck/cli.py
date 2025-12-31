@@ -17,8 +17,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("target", type=Path, help="Target file or directory to scan")
     parser.add_argument(
         "--pattern",
-        default="**/*.sqltest",
-        help="Glob pattern for test discovery (default: **/*.sqltest)",
+        default="**/*.sql",
+        help="Glob pattern for test discovery (default: **/*.sql)",
     )
     parser.add_argument("--workers", type=int, default=5, help="Number of worker threads")
     parser.add_argument(
