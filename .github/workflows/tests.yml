@@ -16,11 +16,9 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install package
-        run: uv sync --extra dev
+        run: uv sync --extra dev --extra duckdb
       - name: Run unit tests
         run: uv run python -m unittest discover -s tests
-      - name: Install DuckDB SQLAlchemy adapter
-        run: uv pip install duckdb duckdb-engine
       - name: Run SQLCheck against DuckDB in-memory
         env:
           SQLCHECK_CONN_DUCKDB: "duckdb:///:memory:"
