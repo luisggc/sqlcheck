@@ -9,7 +9,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from sqlcheck.adapters.base import Adapter
 from sqlcheck.adapters.duckdb import DuckDBAdapter
+from sqlcheck.adapters.snowflake import SnowflakeAdapter
 from sqlcheck.models import TestCase, TestResult
 from sqlcheck.runner import build_test_case, discover_files
 
@@ -22,10 +24,12 @@ def discover_cases(target: Path, pattern: str) -> list[TestCase]:
     return [build_test_case(path) for path in paths]
 
 
-def build_adapter(engine: str, engine_args: list[str] | None) -> DuckDBAdapter:
+def build_adapter(engine: str, engine_args: list[str] | None) -> Adapter:
+    command_template = os.getenv("SQLCHECK_ENGINE_COMMAND")
     if engine == "duckdb":
-        command_template = os.getenv("SQLCHECK_ENGINE_COMMAND")
         return DuckDBAdapter(engine_args=engine_args, command_template=command_template)
+    if engine == "snowflake":
+        return SnowflakeAdapter(engine_args=engine_args, command_template=command_template)
     raise ValueError(f"Unsupported engine: {engine}")
 
 

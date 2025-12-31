@@ -1,12 +1,11 @@
-# sqlcheck
+# SQLCheck
 
-`sqlcheck` is a lightweight CLI for validating SQL deployments in CI. It scans SQL test source
-files, extracts expectation directives like `{{ success(...) }}` or `{{ fail(...) }}`, executes
-the compiled SQL against a target engine, and reports per-test results. The design is database-
-agnostic and built for fast, parallel execution with clear failure output.
+SQLCheck turns SQL files into CI-grade tests with inline expectations. It scans SQL test source
+files, extracts directives like `{{ success(...) }}` or `{{ fail(...) }}`, executes the compiled
+SQL against a target engine, and reports per-test results with fast, parallel execution.
 
 > **Note:** The first execution engine included is DuckDB via its CLI for local testing. The
-> architecture is ready for additional engines (e.g., Snowflake via `snow sql`).
+> architecture is ready for additional engines (for example, Snowflake via `snow sql`).
 
 ## Features
 
@@ -36,19 +35,10 @@ source .venv/bin/activate
 - **Python 3.10+**
 - **DuckDB CLI** (`duckdb` in your `PATH`) for local execution
 
-### Dev dependencies
+### Install DuckDB CLI
 
 ```bash
-uv sync --extra dev
-```
-
-### Install DuckDB CLI (Ubuntu)
-
-```bash
-curl -L -o /tmp/duckdb_cli.zip \
-  https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
-unzip -o /tmp/duckdb_cli.zip -d /tmp/duckdb_cli
-sudo install /tmp/duckdb_cli/duckdb /usr/local/bin/duckdb
+curl https://install.duckdb.org | sh
 ```
 
 ## Quick start
@@ -57,17 +47,17 @@ sudo install /tmp/duckdb_cli/duckdb /usr/local/bin/duckdb
 
 ```sql
 -- tests/example.sql
+{{ success(name="basic insert") }}
+
 CREATE TABLE t (id INT);
 INSERT INTO t VALUES (1);
 SELECT * FROM t;
-
-{{ success(name="basic insert") }}
 ```
 
 2. Run sqlcheck:
 
 ```bash
-sqlcheck tests/ --pattern "**/*.sql" --engine duckdb
+sqlcheck run tests/ --pattern "**/*.sql" --engine duckdb
 ```
 
 If any test fails, `sqlcheck` exits with a non-zero status code.
@@ -85,12 +75,13 @@ Directives are un-commented blocks in the SQL source:
 - **`fail(...)`**: Asserts the SQL failed, optionally matching error text with
   `error_contains` and/or `error_regex`.
 
-If no directive is provided, `sqlcheck` defaults to `success()`.
+If no directive is provided, `sqlcheck` defaults to `success()`. The `name` parameter is optional;
+when omitted, the test name defaults to the file path.
 
 ## CLI usage
 
 ```bash
-sqlcheck TARGET [options]
+sqlcheck run TARGET [options]
 ```
 
 **Options**
@@ -98,13 +89,36 @@ sqlcheck TARGET [options]
 - `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
 - `--engine`: Execution adapter (default: `duckdb`).
-- `--duckdb-db`: DuckDB database path (default: `:memory:`).
+- `--engine-arg`: Extra args for the engine command (repeatable).
 - `--json`: Write JSON report to path.
 - `--junit`: Write JUnit XML report to path.
 - `--plan-dir`: Write per-test plan JSON files to a directory.
 - `--plugin`: Load custom expectation functions (repeatable).
 
-## Plugin functions
+### Snowflake example
+
+SQLCheck uses DuckDB by default, but you can point it at `snow sql` with a command template:
+
+```bash
+SQLCHECK_ENGINE_COMMAND="snow sql -f {file_path}" \
+  sqlcheck run tests/
+```
+
+## Reports
+
+- **JSON**: machine-readable summary of each test and its results.
+- **JUnit XML**: CI-friendly test report format.
+- **Plan files**: per-test JSON containing statement splits, directives, and metadata.
+
+## Contributing
+
+### Development setup
+
+```bash
+uv sync --extra dev
+```
+
+### Plugin functions
 
 Create a Python module with a `register(registry)` function:
 
@@ -124,16 +138,10 @@ def register(registry):
 Run with:
 
 ```bash
-sqlcheck tests/ --plugin my_plugin
+sqlcheck run tests/ --plugin my_plugin
 ```
 
-## Reports
-
-- **JSON**: machine-readable summary of each test and its results.
-- **JUnit XML**: CI-friendly test report format.
-- **Plan files**: per-test JSON containing statement splits, directives, and metadata.
-
-## Running tests
+### Running tests
 
 ```bash
 python -m unittest discover -s tests
