@@ -179,6 +179,7 @@ name = "sqlcheck"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "rich" },
     { name = "typer" },
 ]
 
@@ -192,7 +193,8 @@ dev = [
 requires-dist = [
     { name = "duckdb", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "typer", specifier = ">=0.12.0" },
+    { name = "rich", specifier = ">=14.2.0" },
+    { name = "typer", specifier = ">=0.21.0" },
 ]
 provides-extras = ["dev"]
 

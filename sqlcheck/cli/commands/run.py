@@ -4,7 +4,7 @@ from pathlib import Path
 
 import typer
 
-from sqlcheck.cli.common import build_adapter, discover_cases, render_result
+from sqlcheck.cli.common import build_adapter, discover_cases, print_results
 from sqlcheck.functions import default_registry
 from sqlcheck.plugins import load_plugins
 from sqlcheck.reports import write_json, write_junit, write_plan
@@ -44,8 +44,7 @@ def run(
 
     results = run_cases(cases, adapter, registry, workers=workers)
 
-    for result in results:
-        print(render_result(result))
+    print_results(results, engine=engine)
 
     if json_path:
         write_json(results, json_path)
