@@ -17,7 +17,8 @@ class TestCli(unittest.TestCase):
         result = self.runner.invoke(app, ["parse", str(self.fixtures_dir)])
         self.assertEqual(result.exit_code, 0, result.output)
         payload = json.loads(result.output)
-        self.assertEqual(len(payload), 2)
+        expected_count = len(list(self.fixtures_dir.rglob("*.sql")))
+        self.assertEqual(len(payload), expected_count)
         for item in payload:
             self.assertIn("sql_source", item)
             self.assertNotIn("{{", item["sql_source"])
@@ -31,7 +32,8 @@ class TestCli(unittest.TestCase):
             )
             self.assertEqual(result.exit_code, 0, result.output)
             plan_files = list(plan_dir.glob("*.plan.json"))
-            self.assertEqual(len(plan_files), 2)
+            expected_count = len(list(self.fixtures_dir.rglob("*.sql")))
+            self.assertEqual(len(plan_files), expected_count)
 
     def test_plan_writes_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -41,7 +43,8 @@ class TestCli(unittest.TestCase):
             )
             self.assertEqual(result.exit_code, 0, result.output)
             payload = json.loads(json_path.read_text(encoding="utf-8"))
-            self.assertEqual(len(payload), 2)
+            expected_count = len(list(self.fixtures_dir.rglob("*.sql")))
+            self.assertEqual(len(payload), expected_count)
 
 
 if __name__ == "__main__":
