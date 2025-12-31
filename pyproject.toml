@@ -31,6 +31,38 @@ classifiers = [
 dev = [
   "pytest>=8.0.0",
 ]
+postgres = [
+  "psycopg[binary]>=3.1.0",
+]
+mysql = [
+  "pymysql>=1.0.0",
+]
+snowflake = [
+  "snowflake-sqlalchemy>=1.5.0",
+]
+databricks = [
+  "databricks-sql-connector>=3.0.0",
+]
+duckdb = [
+  "duckdb>=1.0.0",
+  "duckdb-engine>=0.10.0",
+]
+mssql = [
+  "pyodbc>=5.0.0",
+]
+oracle = [
+  "oracledb>=2.0.0",
+]
+all = [
+  "psycopg[binary]>=3.1.0",
+  "pymysql>=1.0.0",
+  "snowflake-sqlalchemy>=1.5.0",
+  "databricks-sql-connector>=3.0.0",
+  "duckdb>=1.0.0",
+  "duckdb-engine>=0.10.0",
+  "pyodbc>=5.0.0",
+  "oracledb>=2.0.0",
+]
 
 [project.scripts]
 sqlcheck = "sqlcheck.cli:main"

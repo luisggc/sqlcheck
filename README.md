@@ -28,14 +28,36 @@ database, for example:
 
 ```bash
 # PostgreSQL
-pip install pysqlcheck psycopg[binary]
+pip install pysqlcheck[postgres]
 
 # MySQL
-pip install pysqlcheck pymysql
+pip install pysqlcheck[mysql]
 
 # Snowflake
-pip install pysqlcheck snowflake-sqlalchemy
+pip install pysqlcheck[snowflake]
 ```
+
+Common optional extras (mirrors popular SQLAlchemy dialects) include:
+
+```bash
+# Databricks
+pip install pysqlcheck[databricks]
+
+# DuckDB
+pip install pysqlcheck[duckdb]
+
+# Microsoft SQL Server (ODBC)
+pip install pysqlcheck[mssql]
+
+# Oracle
+pip install pysqlcheck[oracle]
+
+# Everything above
+pip install pysqlcheck[all]
+```
+
+If you need a different database dialect, install the SQLAlchemy driver for it directly. See
+https://docs.sqlalchemy.org/en/20/dialects/ for the full list and driver guidance.
 
 ### From source (recommended during development)
 

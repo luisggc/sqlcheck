@@ -65,8 +65,12 @@ def _driver_hint(dialect: str) -> str:
         "duckdb": "Install it with: pip install duckdb duckdb-engine",
         "postgresql": "Install it with: pip install psycopg[binary]",
         "mysql": "Install it with: pip install pymysql",
+        "databricks": "Install it with: pip install databricks-sql-connector",
+        "mssql": "Install it with: pip install pyodbc",
+        "oracle": "Install it with: pip install oracledb",
     }
-    return hints.get(
+    message = hints.get(
         dialect,
         "Install the database-specific SQLAlchemy dialect/driver for this URI.",
     )
+    return f"{message} See https://docs.sqlalchemy.org/en/20/dialects/ for details."
