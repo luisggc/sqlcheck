@@ -36,6 +36,21 @@ pip install -e .
 - **Python 3.10+**
 - **DuckDB CLI** (`duckdb` in your `PATH`) for local execution
 
+### Dev dependencies
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Install DuckDB CLI (Ubuntu)
+
+```bash
+curl -L -o /tmp/duckdb_cli.zip \
+  https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
+unzip -o /tmp/duckdb_cli.zip -d /tmp/duckdb_cli
+sudo install /tmp/duckdb_cli/duckdb /usr/local/bin/duckdb
+```
+
 ## Quick start
 
 1. Create a SQL test file (default pattern: `**/*.sqltest`):

@@ -4,5 +4,10 @@ version = "0.1.0"
 description = "CLI for SQL test validation"
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+dev = [
+  "duckdb",
+]
+
 [project.scripts]
 sqlcheck = "sqlcheck.cli:main"
