@@ -73,6 +73,22 @@ class TestRunner(unittest.TestCase):
         self.assertTrue(result.status.success)
         path.unlink()
 
+    def test_expect_success_but_fails(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures_false_positives"
+        path = fixtures_dir / "expect_success_but_fail.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, FakeAdapter(False), default_registry())
+        self.assertFalse(result.success)
+        self.assertEqual(result.function_results[0].message, "Expected success but execution failed")
+
+    def test_expect_failure_but_succeeds(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures_false_positives"
+        path = fixtures_dir / "expect_fail_but_succeed.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, FakeAdapter(True), default_registry())
+        self.assertFalse(result.success)
+        self.assertEqual(result.function_results[0].message, "Expected failure but execution succeeded")
+
 
 if __name__ == "__main__":
     unittest.main()
