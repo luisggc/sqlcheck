@@ -11,6 +11,7 @@ class TestSQLAlchemyAdapter(unittest.TestCase):
         message = str(context.exception)
         self.assertIn("snowflake", message)
         self.assertIn("snowflake-sqlalchemy", message)
+        self.assertIn("Can't load plugin", message)
 
 
 if __name__ == "__main__":

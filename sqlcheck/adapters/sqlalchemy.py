@@ -20,7 +20,10 @@ class SQLAlchemyAdapter(Adapter):
         except NoSuchModuleError as exc:
             dialect = _dialect_from_uri(connection_uri)
             hint = _driver_hint(dialect)
-            message = f"Missing SQLAlchemy driver for '{dialect}'. {hint}"
+            message = (
+                f"Missing SQLAlchemy driver for '{dialect}'. {hint} "
+                f"Original error: {exc}"
+            )
             raise ValueError(message) from exc
 
     def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
