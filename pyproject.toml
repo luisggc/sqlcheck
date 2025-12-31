@@ -35,5 +35,8 @@ dev = [
 [project.scripts]
 sqlcheck = "sqlcheck.cli:main"
 
+[tool.hatch.build.targets.wheel]
+packages = ["sqlcheck"]
+
 [tool.uv]
 package = true
