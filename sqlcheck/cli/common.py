@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from sqlcheck.adapters.base import Adapter
+from sqlcheck.adapters.base import Adapter, CommandAdapter
 from sqlcheck.adapters.duckdb import DuckDBAdapter
 from sqlcheck.adapters.snowflake import SnowflakeAdapter
 from sqlcheck.models import TestCase, TestResult
@@ -24,13 +24,30 @@ def discover_cases(target: Path, pattern: str) -> list[TestCase]:
     return [build_test_case(path) for path in paths]
 
 
+def _get_adapter_registry() -> dict[str, type[Adapter]]:
+    """Automatically discover and register all Adapter subclasses by their name."""
+    registry: dict[str, type[Adapter]] = {}
+
+    def register_subclasses(cls: type[Adapter]) -> None:
+        for subclass in cls.__subclasses__():
+            if hasattr(subclass, "name"):
+                registry[subclass.name] = subclass
+            register_subclasses(subclass)
+
+    register_subclasses(Adapter)
+    return registry
+
+
 def build_adapter(engine: str, engine_args: list[str] | None) -> Adapter:
     command_template = os.getenv("SQLCHECK_ENGINE_COMMAND")
-    if engine == "duckdb":
-        return DuckDBAdapter(engine_args=engine_args, command_template=command_template)
-    if engine == "snowflake":
-        return SnowflakeAdapter(engine_args=engine_args, command_template=command_template)
-    raise ValueError(f"Unsupported engine: {engine}")
+    registry = _get_adapter_registry()
+
+    adapter_class = registry.get(engine)
+    if adapter_class is None:
+        available = ", ".join(sorted(registry.keys()))
+        raise ValueError(f"Unsupported engine: {engine}. Available engines: {available}")
+
+    return adapter_class(engine_args=engine_args, command_template=command_template)
 
 
 def print_results(results: list[TestResult], engine: str | None = None) -> None:

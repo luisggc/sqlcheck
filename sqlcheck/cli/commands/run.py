@@ -17,7 +17,7 @@ def run(
         "**/*.sql", help="Glob pattern for test discovery (default: **/*.sql)"
     ),
     workers: int = typer.Option(5, help="Number of worker threads"),
-    engine: str = typer.Option("duckdb", help="Execution engine adapter"),
+    engine: str = typer.Option("base", help="Execution engine adapter"),
     json_path: Path | None = typer.Option(
         None, "--json", help="Write JSON report to path"
     ),

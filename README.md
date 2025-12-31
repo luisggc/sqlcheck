@@ -4,8 +4,8 @@ SQLCheck turns SQL files into CI-grade tests with inline expectations. It scans 
 files, extracts directives like `{{ success(...) }}` or `{{ fail(...) }}`, executes the compiled
 SQL against a target engine, and reports per-test results with fast, parallel execution.
 
-> **Note:** The first execution engine included is DuckDB via its CLI for local testing. The
-> architecture is ready for additional engines (for example, Snowflake via `snow sql`).
+> **Note:** SQLCheck uses a base CommandAdapter by default, requiring you to specify a command
+> template via `SQLCHECK_ENGINE_COMMAND`. Built-in adapters include DuckDB and Snowflake.
 
 ## Features
 
@@ -33,9 +33,9 @@ source .venv/bin/activate
 ### Prerequisites
 
 - **Python 3.10+**
-- **DuckDB CLI** (`duckdb` in your `PATH`) for local execution
+- **SQL execution engine** (optional): DuckDB CLI, Snowflake CLI, or custom command via `SQLCHECK_ENGINE_COMMAND`
 
-### Install DuckDB CLI
+### Install DuckDB CLI (optional)
 
 ```bash
 curl https://install.duckdb.org | sh
@@ -57,7 +57,11 @@ SELECT * FROM t;
 2. Run sqlcheck:
 
 ```bash
+# Using DuckDB adapter
 sqlcheck run tests/ --pattern "**/*.sql" --engine duckdb
+
+# Or using base adapter with custom command
+SQLCHECK_ENGINE_COMMAND="duckdb" sqlcheck run tests/ --pattern "**/*.sql"
 ```
 
 If any test fails, `sqlcheck` exits with a non-zero status code.
@@ -88,20 +92,24 @@ sqlcheck run TARGET [options]
 
 - `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
-- `--engine`: Execution adapter (default: `duckdb`).
+- `--engine`: Execution adapter (default: `base`).
 - `--engine-arg`: Extra args for the engine command (repeatable).
 - `--json`: Write JSON report to path.
 - `--junit`: Write JUnit XML report to path.
 - `--plan-dir`: Write per-test plan JSON files to a directory.
 - `--plugin`: Load custom expectation functions (repeatable).
 
-### Snowflake example
+### Using custom engines
 
-SQLCheck uses DuckDB by default, but you can point it at `snow sql` with a command template:
+SQLCheck's base adapter allows you to use any SQL engine by providing a command template:
 
 ```bash
+# Snowflake example
 SQLCHECK_ENGINE_COMMAND="snow sql -c dev -f {file_path}" \
   sqlcheck run tests/
+
+# Or use the built-in Snowflake adapter
+sqlcheck run tests/ --engine snowflake
 ```
 
 ## Reports
