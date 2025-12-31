@@ -3,28 +3,38 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 from xml.etree import ElementTree
 
-from sqlcheck.models import TestResult
+from sqlcheck.models import TestCase, TestResult
 
 
-def write_plan(result: TestResult, path: Path) -> None:
-    payload = {
-        "path": str(result.case.path),
-        "name": result.case.metadata.name,
-        "tags": result.case.metadata.tags,
-        "serial": result.case.metadata.serial,
-        "timeout": result.case.metadata.timeout,
-        "retries": result.case.metadata.retries,
+def build_plan_payload(case: TestCase) -> dict[str, Any]:
+    return {
+        "path": str(case.path),
+        "name": case.metadata.name,
+        "tags": case.metadata.tags,
+        "serial": case.metadata.serial,
+        "timeout": case.metadata.timeout,
+        "retries": case.metadata.retries,
         "statements": [
             {"index": stmt.index, "text": stmt.text, "start": stmt.start, "end": stmt.end}
-            for stmt in result.case.sql_parsed.statements
+            for stmt in case.sql_parsed.statements
         ],
         "directives": [
             {"name": directive.name, "args": directive.args, "kwargs": directive.kwargs}
-            for directive in result.case.directives
+            for directive in case.directives
         ],
     }
+
+
+def write_plan(result: TestResult, path: Path) -> None:
+    payload = build_plan_payload(result.case)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def write_case_plan(case: TestCase, path: Path) -> None:
+    payload = build_plan_payload(case)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
