@@ -19,11 +19,6 @@ jobs:
           pip install -e ".[dev]"
       - name: Install DuckDB CLI
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          curl -L -o /tmp/duckdb_cli.zip \
-            https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
-          unzip -o /tmp/duckdb_cli.zip -d /tmp/duckdb_cli
-          sudo install /tmp/duckdb_cli/duckdb /usr/local/bin/duckdb
+          curl https://install.duckdb.org | sh
       - name: Run unit tests
         run: python -m unittest discover -s tests
