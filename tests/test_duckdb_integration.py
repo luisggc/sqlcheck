@@ -25,7 +25,7 @@ class TestDuckDBIntegration(unittest.TestCase):
     @unittest.skipUnless(shutil.which("duckdb"), "duckdb CLI not found in PATH")
     def test_cli_discovers_fixtures_directory(self) -> None:
         fixtures_dir = Path(__file__).resolve().parent / "fixtures"
-        result = self.runner.invoke(app, ["run", str(fixtures_dir)])
+        result = self.runner.invoke(app, ["run", str(fixtures_dir), "--engine", "duckdb"])
         self.assertEqual(result.exit_code, 0, result.output)
 
 

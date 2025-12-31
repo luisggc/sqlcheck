@@ -40,11 +40,15 @@ def _get_adapter_registry() -> dict[str, type[Adapter]]:
 
 def build_adapter(engine: str, engine_args: list[str] | None) -> Adapter:
     command_template = os.getenv("SQLCHECK_ENGINE_COMMAND")
-    registry = _get_adapter_registry()
 
+    # Special handling for "base" adapter with custom command template
+    if engine == "base":
+        return CommandAdapter(engine_args=engine_args, command_template=command_template)
+
+    registry = _get_adapter_registry()
     adapter_class = registry.get(engine)
     if adapter_class is None:
-        available = ", ".join(sorted(registry.keys()))
+        available = ", ".join(["base"] + sorted(registry.keys()))
         raise ValueError(f"Unsupported engine: {engine}. Available engines: {available}")
 
     return adapter_class(engine_args=engine_args, command_template=command_template)
