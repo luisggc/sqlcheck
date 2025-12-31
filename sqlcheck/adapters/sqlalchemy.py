@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import time
+from urllib.parse import urlparse
 
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import NoSuchModuleError, SQLAlchemyError
 
 from sqlcheck.adapters.base import Adapter, ExecutionResult
 from sqlcheck.models import ExecutionOutput, ExecutionStatus, SQLParsed
@@ -14,7 +15,13 @@ class SQLAlchemyAdapter(Adapter):
 
     def __init__(self, connection_uri: str) -> None:
         self.connection_uri = connection_uri
-        self.engine = create_engine(connection_uri)
+        try:
+            self.engine = create_engine(connection_uri)
+        except NoSuchModuleError as exc:
+            dialect = _dialect_from_uri(connection_uri)
+            hint = _driver_hint(dialect)
+            message = f"Missing SQLAlchemy driver for '{dialect}'. {hint}"
+            raise ValueError(message) from exc
 
     def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
         start = time.perf_counter()
@@ -42,3 +49,21 @@ class SQLAlchemyAdapter(Adapter):
         status = ExecutionStatus(success=success, returncode=returncode, duration_s=duration)
         output = ExecutionOutput(stdout=stdout, stderr=stderr)
         return ExecutionResult(status=status, output=output)
+
+
+def _dialect_from_uri(connection_uri: str) -> str:
+    scheme = urlparse(connection_uri).scheme
+    return scheme.split("+", maxsplit=1)[0] if scheme else "unknown"
+
+
+def _driver_hint(dialect: str) -> str:
+    hints = {
+        "snowflake": "Install it with: pip install snowflake-sqlalchemy",
+        "duckdb": "Install it with: pip install duckdb duckdb-engine",
+        "postgresql": "Install it with: pip install psycopg[binary]",
+        "mysql": "Install it with: pip install pymysql",
+    }
+    return hints.get(
+        dialect,
+        "Install the database-specific SQLAlchemy dialect/driver for this URI.",
+    )
