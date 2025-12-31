@@ -2,11 +2,8 @@
 
 SQLCheck turns SQL files into CI-grade tests with inline expectations. It scans SQL test source
 files, extracts directives like `{{ success(...) }}` or `{{ fail(...) }}`, executes the compiled
-SQL against a target engine, and reports per-test results with fast, parallel execution.
-
-> **Note:** SQLCheck supports DuckDB and Snowflake via built-in adapters (`--engine duckdb` or
-> `--engine snowflake`). For other databases, use the `base` engine with a custom command
-> template via `SQLCHECK_ENGINE_COMMAND`.
+SQL against a target database using SQLAlchemy, and reports per-test results with fast, parallel
+execution.
 
 ## Features
 
@@ -19,6 +16,26 @@ SQL against a target engine, and reports per-test results with fast, parallel ex
 - **Extensible assertions**: Register custom functions via plugins.
 
 ## Installation
+
+### From PyPI
+
+```bash
+pip install pysqlcheck
+```
+
+SQLAlchemy requires a database-specific driver (dialect) package. Install the one for your
+database, for example:
+
+```bash
+# PostgreSQL
+pip install pysqlcheck psycopg[binary]
+
+# MySQL
+pip install pysqlcheck pymysql
+
+# Snowflake
+pip install pysqlcheck snowflake-sqlalchemy
+```
 
 ### From source (recommended during development)
 
@@ -34,13 +51,7 @@ source .venv/bin/activate
 ### Prerequisites
 
 - **Python 3.10+**
-- **SQL execution engine** (optional): DuckDB CLI, Snowflake CLI, or custom command via `SQLCHECK_ENGINE_COMMAND`
-
-### Install DuckDB CLI (optional)
-
-```bash
-curl https://install.duckdb.org | sh
-```
+- **SQLAlchemy-compatible database connection**
 
 ## Quick start
 
@@ -55,17 +66,15 @@ INSERT INTO t VALUES (1);
 SELECT * FROM t;
 ```
 
-2. Run sqlcheck with your preferred engine:
+2. Run sqlcheck with a connection name:
 
 ```bash
-# Using DuckDB (recommended for getting started)
-sqlcheck run tests/ --engine duckdb
+# Provide a connection URI via environment variable
+export SQLCHECK_CONN_DEV="sqlite:///tmp/sqlcheck.db"
+sqlcheck run tests/ --connection dev
 
-# Using Snowflake with connection profile
-sqlcheck run tests/ --engine snowflake --engine-arg "-c dev"
-
-# Using a custom engine command
-SQLCHECK_ENGINE_COMMAND="psql -f {file_path}" sqlcheck run tests/
+# Short flag works too
+sqlcheck run tests/ -c dev
 ```
 
 If any test fails, `sqlcheck` exits with a non-zero status code.
@@ -96,86 +105,24 @@ sqlcheck run TARGET [options]
 
 - `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
-- `--engine`: Execution adapter (default: `base`).
-- `--engine-arg`: Extra args for the engine command (supports shell-style quoting, repeatable).
+- `--connection`, `-c`: Connection name for `SQLCHECK_CONN_<NAME>` lookup.
 - `--json`: Write JSON report to path.
 - `--junit`: Write JUnit XML report to path.
 - `--plan-dir`: Write per-test plan JSON files to a directory.
 - `--plugin`: Load custom expectation functions (repeatable).
 
-## Engine configuration
+## Connection configuration
 
-SQLCheck supports multiple SQL engines through built-in adapters and custom command templates.
-
-### Built-in adapters
-
-Use the `--engine` parameter to select a built-in adapter:
+SQLCheck resolves connection URIs from environment variables. For a connection name like
+`snowflake_prod`, SQLCheck looks up `SQLCHECK_CONN_SNOWFLAKE_PROD`.
 
 ```bash
-# DuckDB (in-memory database)
-sqlcheck run tests/ --engine duckdb
-
-# DuckDB with a persistent database file
-sqlcheck run tests/ --engine duckdb --engine-arg /path/to/database.db
-
-# Snowflake (uses snow CLI)
-sqlcheck run tests/ --engine snowflake --engine-arg "-c dev"
+export SQLCHECK_CONN_SNOWFLAKE_PROD="snowflake://user:pass@account/db/schema"
+sqlcheck run tests/ --connection snowflake_prod
 ```
 
-**Available engines:**
-- `duckdb` - DuckDB CLI (requires `duckdb` in PATH)
-- `snowflake` - Snowflake CLI (requires `snow` in PATH)
-- `base` - Custom command via `SQLCHECK_ENGINE_COMMAND` (default)
-
-### Custom engines with SQLCHECK_ENGINE_COMMAND
-
-For engines without a built-in adapter, use the `base` engine with a custom command template:
-
-```bash
-# Using environment variable
-SQLCHECK_ENGINE_COMMAND="psql -f {file_path}" sqlcheck run tests/
-
-# With inline SQL (using stdin)
-SQLCHECK_ENGINE_COMMAND="mysql -u root -p" sqlcheck run tests/
-
-# With SQL as command argument
-SQLCHECK_ENGINE_COMMAND="clickhouse-client --query {sql}" sqlcheck run tests/
-```
-
-**Template variables:**
-- `{file_path}` - Path to a temporary file containing the SQL
-- `{sql}` - The SQL query as a command-line argument (properly quoted)
-- `{engine_args}` - Additional arguments passed via `--engine-arg` flags
-
-**Examples with template variables:**
-
-```bash
-# Databricks with engine args (each arg passed separately)
-SQLCHECK_ENGINE_COMMAND="databricks sql --warehouse-id {engine_args}" \
-  sqlcheck run tests/ --engine-arg "abc123"
-
-# Snowflake with multiple args
-SQLCHECK_ENGINE_COMMAND="snow sql -c {engine_args} -f {file_path}" \
-  sqlcheck run tests/ --engine-arg "dev"
-
-# PostgreSQL with multiple connection parameters
-SQLCHECK_ENGINE_COMMAND="psql {engine_args} -f {file_path}" \
-  sqlcheck run tests/ --engine-arg "-h localhost -d mydb"
-
-# Using inline SQL
-SQLCHECK_ENGINE_COMMAND="psql -h localhost -d mydb -c {sql}" \
-  sqlcheck run tests/
-```
-
-**How it works:**
-- If `{file_path}` is used, SQLCheck creates a temporary `.sql` file
-- If `{sql}` is used, SQL is passed as a command argument
-- If neither is used, SQL is piped to stdin (default behavior)
-- `{engine_args}` is replaced with all `--engine-arg` values joined by spaces
-- `--engine-arg` supports shell-style quoting, so you can write:
-  - `--engine-arg "-c dev"` (simple case, parsed into two args: `-c` and `dev`)
-  - `--engine-arg '-h localhost -d "my database"'` (with quoted strings containing spaces)
-  - `--engine-arg "-c" --engine-arg "dev"` (or use multiple flags if you prefer)
+Connection names are uppercased and any non-alphanumeric characters are converted to underscores
+before the lookup.
 
 ## Reports
 

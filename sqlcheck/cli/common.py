@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import typer
@@ -9,9 +10,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from sqlcheck.adapters.base import Adapter, CommandAdapter
-from sqlcheck.adapters.duckdb import DuckDBAdapter
-from sqlcheck.adapters.snowflake import SnowflakeAdapter
+from sqlcheck.adapters.base import Adapter
+from sqlcheck.adapters.sqlalchemy import SQLAlchemyAdapter
 from sqlcheck.models import TestCase, TestResult
 from sqlcheck.runner import build_test_case, discover_files
 
@@ -24,34 +24,22 @@ def discover_cases(target: Path, pattern: str) -> list[TestCase]:
     return [build_test_case(path) for path in paths]
 
 
-def _get_adapter_registry() -> dict[str, type[Adapter]]:
-    """Automatically discover and register all Adapter subclasses by their name."""
-    registry: dict[str, type[Adapter]] = {}
-
-    def register_subclasses(cls: type[Adapter]) -> None:
-        for subclass in cls.__subclasses__():
-            if hasattr(subclass, "name"):
-                registry[subclass.name] = subclass
-            register_subclasses(subclass)
-
-    register_subclasses(Adapter)
-    return registry
+def _connection_env_var(name: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").upper()
+    return f"SQLCHECK_CONN_{slug}"
 
 
-def build_adapter(engine: str, engine_args: list[str] | None) -> Adapter:
-    command_template = os.getenv("SQLCHECK_ENGINE_COMMAND")
+def resolve_connection_uri(name: str) -> str:
+    env_var = _connection_env_var(name)
+    value = os.getenv(env_var)
+    if not value:
+        raise ValueError(f"Missing connection URI. Set {env_var}.")
+    return value
 
-    # Special handling for "base" adapter with custom command template
-    if engine == "base":
-        return CommandAdapter(engine_args=engine_args, command_template=command_template)
 
-    registry = _get_adapter_registry()
-    adapter_class = registry.get(engine)
-    if adapter_class is None:
-        available = ", ".join(["base"] + sorted(registry.keys()))
-        raise ValueError(f"Unsupported engine: {engine}. Available engines: {available}")
-
-    return adapter_class(engine_args=engine_args, command_template=command_template)
+def build_adapter(connection: str) -> Adapter:
+    connection_uri = resolve_connection_uri(connection)
+    return SQLAlchemyAdapter(connection_uri=connection_uri)
 
 
 def print_results(results: list[TestResult], engine: str | None = None) -> None:

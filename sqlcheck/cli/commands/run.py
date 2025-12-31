@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shlex
 from pathlib import Path
 
 import typer
@@ -18,7 +17,12 @@ def run(
         "**/*.sql", help="Glob pattern for test discovery (default: **/*.sql)"
     ),
     workers: int = typer.Option(5, help="Number of worker threads"),
-    engine: str = typer.Option("base", help="Execution engine adapter"),
+    connection: str = typer.Option(
+        ...,
+        "--connection",
+        "-c",
+        help="Connection name for SQLCHECK_CONN_<NAME> environment lookup",
+    ),
     json_path: Path | None = typer.Option(
         None, "--json", help="Write JSON report to path"
     ),
@@ -31,29 +35,18 @@ def run(
     plugin: list[str] | None = typer.Option(
         None, "--plugin", help="Plugin module path to load (can be repeated)"
     ),
-    engine_args: list[str] | None = typer.Option(
-        None,
-        "--engine-arg",
-        help="Extra args for the engine command (supports shell-style quoting, repeatable)",
-    ),
 ) -> None:
-    # Parse engine_args using shell-style quoting
-    parsed_engine_args = []
-    if engine_args:
-        for arg in engine_args:
-            parsed_engine_args.extend(shlex.split(arg))
-
     cases = discover_cases(target, pattern)
 
     registry = default_registry()
     if plugin:
         load_plugins(plugin, registry)
 
-    adapter = build_adapter(engine, parsed_engine_args or None)
+    adapter = build_adapter(connection)
 
     results = run_cases(cases, adapter, registry, workers=workers)
 
-    print_results(results, engine=engine)
+    print_results(results, engine=connection)
 
     if json_path:
         write_json(results, json_path)
