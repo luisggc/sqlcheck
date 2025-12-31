@@ -1,0 +1,8 @@
+[project]
+name = "sqlcheck"
+version = "0.1.0"
+description = "CLI for SQL test validation"
+requires-python = ">=3.10"
+
+[project.scripts]
+sqlcheck = "sqlcheck.cli:main"
