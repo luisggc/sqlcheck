@@ -28,7 +28,7 @@ class FakeAdapter(Adapter):
 class TestReports(unittest.TestCase):
     def test_reports_write_files(self) -> None:
         with TemporaryDirectory() as temp_dir:
-            sql_path = Path(temp_dir) / "sample.sqltest"
+            sql_path = Path(temp_dir) / "sample.sql"
             sql_path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
             case = build_test_case(sql_path)
             result = run_test_case(case, FakeAdapter(True), default_registry())
