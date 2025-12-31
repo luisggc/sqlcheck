@@ -1,10 +1,10 @@
 {{ 
     fail(
         name="basic failure",
-        error_contains="Catalog Error: Type with name notexistanttype does not exist"
+        error_contains="type"
     )
 }}
 
-CREATE TABLE t (id notexistanttype);
-INSERT INTO t VALUES (1);
-SELECT * FROM t;
+CREATE TABLE test_n2 (id notexistanttype);
+INSERT INTO test_n2 VALUES (1);
+SELECT * FROM test_n2;

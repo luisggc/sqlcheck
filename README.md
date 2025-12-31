@@ -100,7 +100,7 @@ sqlcheck run TARGET [options]
 SQLCheck uses DuckDB by default, but you can point it at `snow sql` with a command template:
 
 ```bash
-SQLCHECK_ENGINE_COMMAND="snow sql -f {file_path}" \
+SQLCHECK_ENGINE_COMMAND="snow sql -c dev -f {file_path}" \
   sqlcheck run tests/
 ```
 
