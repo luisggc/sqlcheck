@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 
 import typer
@@ -31,16 +32,24 @@ def run(
         None, "--plugin", help="Plugin module path to load (can be repeated)"
     ),
     engine_args: list[str] | None = typer.Option(
-        None, "--engine-arg", help="Extra args for the engine command (repeatable)"
+        None,
+        "--engine-arg",
+        help="Extra args for the engine command (supports shell-style quoting, repeatable)",
     ),
 ) -> None:
+    # Parse engine_args using shell-style quoting
+    parsed_engine_args = []
+    if engine_args:
+        for arg in engine_args:
+            parsed_engine_args.extend(shlex.split(arg))
+
     cases = discover_cases(target, pattern)
 
     registry = default_registry()
     if plugin:
         load_plugins(plugin, registry)
 
-    adapter = build_adapter(engine, engine_args)
+    adapter = build_adapter(engine, parsed_engine_args or None)
 
     results = run_cases(cases, adapter, registry, workers=workers)
 

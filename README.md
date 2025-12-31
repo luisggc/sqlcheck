@@ -62,7 +62,7 @@ SELECT * FROM t;
 sqlcheck run tests/ --engine duckdb
 
 # Using Snowflake with connection profile
-sqlcheck run tests/ --engine snowflake --engine-arg "-c" --engine-arg "dev"
+sqlcheck run tests/ --engine snowflake --engine-arg "-c dev"
 
 # Using a custom engine command
 SQLCHECK_ENGINE_COMMAND="psql -f {file_path}" sqlcheck run tests/
@@ -97,7 +97,7 @@ sqlcheck run TARGET [options]
 - `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
 - `--engine`: Execution adapter (default: `base`).
-- `--engine-arg`: Extra args for the engine command (repeatable).
+- `--engine-arg`: Extra args for the engine command (supports shell-style quoting, repeatable).
 - `--json`: Write JSON report to path.
 - `--junit`: Write JUnit XML report to path.
 - `--plan-dir`: Write per-test plan JSON files to a directory.
@@ -118,8 +118,8 @@ sqlcheck run tests/ --engine duckdb
 # DuckDB with a persistent database file
 sqlcheck run tests/ --engine duckdb --engine-arg /path/to/database.db
 
-# Snowflake (uses snow CLI) - pass each arg separately
-sqlcheck run tests/ --engine snowflake --engine-arg "-c" --engine-arg "dev"
+# Snowflake (uses snow CLI)
+sqlcheck run tests/ --engine snowflake --engine-arg "-c dev"
 ```
 
 **Available engines:**
@@ -160,9 +160,7 @@ SQLCHECK_ENGINE_COMMAND="snow sql -c {engine_args} -f {file_path}" \
 
 # PostgreSQL with multiple connection parameters
 SQLCHECK_ENGINE_COMMAND="psql {engine_args} -f {file_path}" \
-  sqlcheck run tests/ \
-  --engine-arg "-h" --engine-arg "localhost" \
-  --engine-arg "-d" --engine-arg "mydb"
+  sqlcheck run tests/ --engine-arg "-h localhost -d mydb"
 
 # Using inline SQL
 SQLCHECK_ENGINE_COMMAND="psql -h localhost -d mydb -c {sql}" \
@@ -174,7 +172,10 @@ SQLCHECK_ENGINE_COMMAND="psql -h localhost -d mydb -c {sql}" \
 - If `{sql}` is used, SQL is passed as a command argument
 - If neither is used, SQL is piped to stdin (default behavior)
 - `{engine_args}` is replaced with all `--engine-arg` values joined by spaces
-- Each `--engine-arg` should be a separate flag (e.g., `--engine-arg "-c" --engine-arg "dev"`)
+- `--engine-arg` supports shell-style quoting, so you can write:
+  - `--engine-arg "-c dev"` (simple case, parsed into two args: `-c` and `dev`)
+  - `--engine-arg '-h localhost -d "my database"'` (with quoted strings containing spaces)
+  - `--engine-arg "-c" --engine-arg "dev"` (or use multiple flags if you prefer)
 
 ## Reports
 
