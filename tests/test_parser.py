@@ -9,13 +9,13 @@ class TestParser(unittest.TestCase):
         source = """
         SELECT 1;
         {{ success(name='ok', tags=['smoke']) }}
-        {{ fail(error_contains='boom') }}
+        {{ fail(error_match='boom') }}
         """
         directives = parse_directives(source)
         self.assertEqual([d.name for d in directives], ["success", "fail"])
         self.assertEqual(directives[0].kwargs["name"], "ok")
         self.assertEqual(directives[0].kwargs["tags"], ["smoke"])
-        self.assertEqual(directives[1].kwargs["error_contains"], "boom")
+        self.assertEqual(directives[1].kwargs["error_match"], "boom")
 
     def test_strip_directives_removes_blocks(self) -> None:
         source = "SELECT 1; {{ success() }} SELECT 2;"

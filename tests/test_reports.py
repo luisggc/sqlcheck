@@ -21,7 +21,11 @@ class FakeAdapter(DBConnector):
             returncode=0 if self.succeed else 1,
             duration_s=0.01,
         )
-        output = ExecutionOutput(stdout="ok" if self.succeed else "", stderr="" if self.succeed else "boom")
+        output = ExecutionOutput(
+            stdout="ok" if self.succeed else "",
+            stderr="" if self.succeed else "boom",
+            rows=[],
+        )
         return ExecutionResult(status=status, output=output)
 
 

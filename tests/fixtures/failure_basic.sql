@@ -1,7 +1,7 @@
 {{ 
     fail(
         name="basic failure",
-        error_contains="type"
+        error_match="type"
     )
 }}
 
