@@ -30,12 +30,12 @@ def build_plan_payload(case: TestCase) -> dict[str, Any]:
 
 def write_plan(result: TestResult, path: Path) -> None:
     payload = build_plan_payload(result.case)
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
 
 
 def write_case_plan(case: TestCase, path: Path) -> None:
     payload = build_plan_payload(case)
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
 
 
 def write_json(results: list[TestResult], path: Path) -> None:

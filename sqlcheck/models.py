@@ -55,6 +55,7 @@ class ExecutionStatus:
 class ExecutionOutput:
     stdout: str
     stderr: str
+    columns: list[str] = field(default_factory=list)
     rows: list[list[Any]] = field(default_factory=list)
 
 

@@ -1,3 +1,3 @@
-{{ assess(result_equals=1) }}
+{{ assess(lambda r: r.data["column1"][0] == 1) }}
 
 SELECT 1;

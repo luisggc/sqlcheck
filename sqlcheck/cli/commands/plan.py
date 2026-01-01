@@ -31,7 +31,7 @@ def plan(
             plan_path = plan_dir / f"{relative_name}.plan.json"
             write_case_plan(case, plan_path)
 
-    output = json.dumps(payload, indent=2)
+    output = json.dumps(payload, indent=2, default=str)
     if json_path:
         json_path.write_text(output, encoding="utf-8")
     elif not plan_dir:

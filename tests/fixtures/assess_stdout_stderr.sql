@@ -1,3 +1,3 @@
-{{ assess(stdout_match="ok", stderr_match="re:warn") }}
+{{ assess(lambda r: r.stdout == "ok" and "warn" in r.stderr) }}
 
 SELECT 1;

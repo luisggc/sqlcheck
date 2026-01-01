@@ -11,5 +11,9 @@ def fail(
     error_match: str | None = None,
     **_kwargs: Any,
 ) -> FunctionResult:
-    result = assess(expect_success=False, error_match=error_match)
+    if error_match:
+        expr = lambda r: (not r.success) and error_match in r.stderr
+    else:
+        expr = lambda r: not r.success
+    result = assess(expr)
     return FunctionResult(name="fail", success=result.success, message=result.message)

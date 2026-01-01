@@ -1,3 +1,3 @@
-{{ assess(output_match="1") }}
+{{ assess(lambda r: r.rows == [[1]]) }}
 
 SELECT 1;

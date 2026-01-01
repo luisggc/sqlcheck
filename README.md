@@ -1,14 +1,14 @@
 # SQLCheck
 
 SQLCheck turns SQL files into CI-grade tests with inline expectations. It scans SQL test source
-files, extracts directives like `{{ success(...) }}` or `{{ fail(...) }}`, executes the compiled
+files, extracts directives like `{{ assess(...) }}`, executes the compiled
 SQL against a target database using SQLAlchemy, and reports per-test results with fast, parallel
 execution.
 
 ## Features
 
-- **Directive-based expectations**: `{{ success(...) }}` and `{{ fail(...) }}` directives define
-  expected behavior directly inside SQL test files.
+- **Directive-based expectations**: `{{ assess(...) }}` directives define expected behavior
+  directly inside SQL test files.
 - **Deterministic parse/compile stage**: Directives are stripped to produce executable SQL plus
   structured `sql_parsed` statement metadata.
 - **Parallel execution**: Run tests concurrently with a configurable worker pool (default: 5).
@@ -81,7 +81,7 @@ source .venv/bin/activate
 
 ```sql
 -- tests/example.sql
-{{ success(name="basic insert") }}
+{{ assess(lambda r: r.success, name="basic insert") }}
 
 CREATE TABLE t (id INT);
 INSERT INTO t VALUES (1);
@@ -106,27 +106,18 @@ If any test fails, `sqlcheck` exits with a non-zero status code.
 Directives are un-commented blocks in the SQL source:
 
 ```sql
-{{ success(name="my test", tags=["smoke"], timeout=30, retries=1) }}
-{{ fail(error_match="re:permission.*denied") }}
-{{ assess(stdout_match="ok", stderr_match="warning") }}
-{{ assess(result_equals=0) }}
+{{ assess(lambda r: r.success, name="my test", tags=["smoke"], timeout=30, retries=1) }}
+{{ assess(lambda r: (not r.success) and "permission" in r.stderr.lower()) }}
+{{ assess(lambda r: r.stdout == "ok" and "warning" in r.stderr) }}
+{{ assess(lambda r: r.data["column1"][0] == 0) }}
 ```
 
-- **`success(...)`**: Asserts the SQL executed without errors.
-- **`fail(...)`**: Asserts the SQL failed, optionally matching stderr text with `error_match`.
-- **`assess(...)`**: Asserts output, error text, and result values. Supported params include:
-  - `stdout_match`: Match stdout (substring or regex).
-  - `stderr_match`: Match stderr (substring or regex).
-  - `error_match`: Match stderr (substring or regex) for error expectations.
-  - `output_match`: Match stringified query result rows (substring or regex).
-  - `result_equals`: Assert a result cell equals a value (default cell `(0, 0)`).
-  - `result_cell`: Tuple of `(row_index, column_index)` to pair with `result_equals`.
+- **`assess(...)`**: Evaluates a lambda against the execution context. The lambda receives a
+  context object with `stdout`, `stderr`, `rows`, `columns`, `data`, `success`, `returncode`,
+  `duration_s`, and the full `status`, `output`, and `sql` fields.
 
-Regex matching accepts either `re:<pattern>` or `/pattern/`. Plain strings are treated as
-substring matches.
-
-If no directive is provided, `sqlcheck` defaults to `success()`. The `name` parameter is optional;
-when omitted, the test name defaults to the file path.
+If no directive is provided, `sqlcheck` defaults to `assess(lambda r: r.success)`. The `name`
+parameter is optional; when omitted, the test name defaults to the file path.
 
 ## CLI usage
 

@@ -1,7 +1,7 @@
-{{ 
-    fail(
-        name="basic failure",
-        error_match="type"
+{{
+    assess(
+        lambda r: (not r.success) and "type" in r.stderr,
+        name="basic failure"
     )
 }}
 

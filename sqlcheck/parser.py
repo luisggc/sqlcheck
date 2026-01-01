@@ -56,16 +56,32 @@ def _literal_eval(node: ast.AST) -> Any:
         raise DirectiveParseError(f"Unsupported literal in directive: {ast.dump(node)}") from exc
 
 
+def _eval_directive_expr(node: ast.AST) -> Any:
+    if isinstance(node, ast.Lambda):
+        expr = ast.Expression(body=node)
+        compiled = compile(ast.fix_missing_locations(expr), "<directive>", "eval")
+        safe_builtins = {
+            "all": all,
+            "any": any,
+            "len": len,
+            "max": max,
+            "min": min,
+            "sum": sum,
+        }
+        return eval(compiled, {"__builtins__": safe_builtins}, {})
+    return _literal_eval(node)
+
+
 def _parse_callable(expr: ast.expr) -> tuple[str, tuple[Any, ...], dict[str, Any]]:
     if not isinstance(expr, ast.Call):
         raise DirectiveParseError("Directive must be a function call")
     func_name = _parse_func_name(expr.func)
-    args = tuple(_literal_eval(arg) for arg in expr.args)
+    args = tuple(_eval_directive_expr(arg) for arg in expr.args)
     kwargs: dict[str, Any] = {}
     for kw in expr.keywords:
         if kw.arg is None:
             raise DirectiveParseError("Directive kwargs must be explicit key=value pairs")
-        kwargs[kw.arg] = _literal_eval(kw.value)
+        kwargs[kw.arg] = _eval_directive_expr(kw.value)
     return func_name, args, kwargs
 
 

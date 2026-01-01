@@ -8,19 +8,18 @@ class TestParser(unittest.TestCase):
     def test_parse_directives_extracts_calls(self) -> None:
         source = """
         SELECT 1;
-        {{ success(name='ok', tags=['smoke']) }}
-        {{ fail(error_match='boom') }}
+        {{ assess(lambda r: r.success, name='ok', tags=['smoke']) }}
         """
         directives = parse_directives(source)
-        self.assertEqual([d.name for d in directives], ["success", "fail"])
+        self.assertEqual([d.name for d in directives], ["assess"])
         self.assertEqual(directives[0].kwargs["name"], "ok")
         self.assertEqual(directives[0].kwargs["tags"], ["smoke"])
-        self.assertEqual(directives[1].kwargs["error_match"], "boom")
+        self.assertTrue(callable(directives[0].args[0]))
 
     def test_strip_directives_removes_blocks(self) -> None:
-        source = "SELECT 1; {{ success() }} SELECT 2;"
+        source = "SELECT 1; {{ assess(lambda r: r.success) }} SELECT 2;"
         stripped = strip_directives(source)
-        self.assertNotIn("success", stripped)
+        self.assertNotIn("assess", stripped)
         self.assertIn("SELECT 1", stripped)
         self.assertIn("SELECT 2", stripped)
 
@@ -35,7 +34,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_directives_rejects_kw_splat(self) -> None:
         with self.assertRaises(DirectiveParseError):
-            parse_directives("{{ success(**{'a': 1}) }}")
+            parse_directives("{{ assess(**{'a': 1}) }}")
 
 
 if __name__ == "__main__":

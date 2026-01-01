@@ -10,5 +10,5 @@ def success(
     *_args: Any,
     **_kwargs: Any,
 ) -> FunctionResult:
-    result = assess(expect_success=True)
+    result = assess(lambda r: r.success)
     return FunctionResult(name="success", success=result.success, message=result.message)

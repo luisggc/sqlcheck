@@ -25,7 +25,9 @@ def discover_files(target: Path, pattern: str) -> list[Path]:
 
 def build_test_case(path: Path) -> TestCase:
     parsed: ParsedFile = parse_file(path)
-    directives = parsed.directives or [DirectiveCall(name="success", args=(), kwargs={}, raw="")]
+    directives = parsed.directives or [
+        DirectiveCall(name="assess", args=(lambda r: r.success,), kwargs={}, raw="")
+    ]
     summary = summarize_directives(directives)
     metadata = TestMetadata(
         name=summary["name"] or path.stem,

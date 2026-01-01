@@ -51,7 +51,7 @@ def parse(
             }
         )
 
-    output = json.dumps(payload, indent=2)
+    output = json.dumps(payload, indent=2, default=str)
     if json_path:
         json_path.write_text(output, encoding="utf-8")
     else:

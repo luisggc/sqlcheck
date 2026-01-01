@@ -27,17 +27,17 @@ class FakeAdapter(DBConnector):
 
 
 class TestRunner(unittest.TestCase):
-    def test_build_test_case_defaults_to_success(self) -> None:
+    def test_build_test_case_defaults_to_assess(self) -> None:
         path = Path("/tmp/default.sql")
         path.write_text("SELECT 1;", encoding="utf-8")
         case = build_test_case(path)
         self.assertEqual(len(case.directives), 1)
-        self.assertEqual(case.directives[0].name, "success")
+        self.assertEqual(case.directives[0].name, "assess")
         path.unlink()
 
     def test_run_test_case_success(self) -> None:
         path = Path("/tmp/success.sql")
-        path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ assess(lambda r: r.success) }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(True), default_registry())
         self.assertTrue(result.success)
@@ -45,7 +45,10 @@ class TestRunner(unittest.TestCase):
 
     def test_run_test_case_failure_expectation(self) -> None:
         path = Path("/tmp/fail.sql")
-        path.write_text("SELECT 1; {{ fail(error_match='boom') }}", encoding="utf-8")
+        path.write_text(
+            "SELECT 1; {{ assess(lambda r: (not r.success) and 'boom' in r.stderr) }}",
+            encoding="utf-8",
+        )
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(False), default_registry())
         self.assertTrue(result.success)
@@ -55,7 +58,10 @@ class TestRunner(unittest.TestCase):
         path_a = Path("/tmp/parallel.sql")
         path_b = Path("/tmp/serial.sql")
         path_a.write_text("SELECT 1;", encoding="utf-8")
-        path_b.write_text("SELECT 2; {{ success(serial=True) }}", encoding="utf-8")
+        path_b.write_text(
+            "SELECT 2; {{ assess(lambda r: r.success, serial=True) }}",
+            encoding="utf-8",
+        )
         cases = [build_test_case(path_a), build_test_case(path_b)]
         results = run_cases(cases, FakeAdapter(True), default_registry(), workers=2)
         self.assertEqual(len(results), 2)
@@ -86,7 +92,7 @@ class TestRunner(unittest.TestCase):
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(False), default_registry())
         self.assertFalse(result.success)
-        self.assertEqual(result.function_results[0].message, "Expected success but execution failed")
+        self.assertEqual(result.function_results[0].message, "Assess expression returned false")
 
     def test_expect_failure_but_succeeds(self) -> None:
         fixtures_dir = Path(__file__).resolve().parent / "fixtures_false_positives"
@@ -94,12 +100,12 @@ class TestRunner(unittest.TestCase):
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(True), default_registry())
         self.assertFalse(result.success)
-        self.assertEqual(result.function_results[0].message, "Expected failure but execution succeeded")
+        self.assertEqual(result.function_results[0].message, "Assess expression returned false")
 
     def test_assess_matches_stdout_and_stderr(self) -> None:
         path = Path("/tmp/assess-output.sql")
         path.write_text(
-            "SELECT 1; {{ assess(stdout_match='ok', stderr_match='re:warn') }}",
+            "SELECT 1; {{ assess(lambda r: r.stdout == 'ok' and 'warn' in r.stderr) }}",
             encoding="utf-8",
         )
         case = build_test_case(path)
@@ -116,7 +122,7 @@ class TestRunner(unittest.TestCase):
 
     def test_assess_matches_result_default_cell(self) -> None:
         path = Path("/tmp/assess-result.sql")
-        path.write_text("SELECT 1; {{ assess(result_equals=0) }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ assess(lambda r: r.rows[0][0] == 0) }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(True), default_registry())
         self.assertTrue(result.success)
@@ -124,7 +130,7 @@ class TestRunner(unittest.TestCase):
 
     def test_assess_matches_output_rows(self) -> None:
         path = Path("/tmp/assess-rows.sql")
-        path.write_text("SELECT 1; {{ assess(output_match='1\\t2') }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ assess(lambda r: r.rows == [[1, 2]]) }}", encoding="utf-8")
         case = build_test_case(path)
 
         class RowsAdapter(DBConnector):

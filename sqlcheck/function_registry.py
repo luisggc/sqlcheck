@@ -25,7 +25,7 @@ class FunctionRegistry:
 
 def default_registry() -> FunctionRegistry:
     registry = FunctionRegistry()
+    registry.register("assess", assess)
     registry.register("success", success)
     registry.register("fail", fail)
-    registry.register("assess", assess)
     return registry
