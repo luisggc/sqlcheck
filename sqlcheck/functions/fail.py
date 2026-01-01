@@ -8,8 +8,11 @@ from sqlcheck.models import FunctionResult
 
 def fail(
     *_args: Any,
-    error_match: str | None = None,
+    match: str | None = None,
     **_kwargs: Any,
 ) -> FunctionResult:
-    result = assess(expect_success=False, error_match=error_match)
+    expression = "success == false"
+    if match:
+        expression = f"({expression}) && ({match})"
+    result = assess(match=expression)
     return FunctionResult(name="fail", success=result.success, message=result.message)

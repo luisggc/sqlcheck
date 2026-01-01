@@ -1,3 +1,3 @@
-{{ fail(error_match="re:(?i)syntax") }}
+{{ fail(match="error_message.matches('(?i)syntax')") }}
 
 SELECT FROM;
