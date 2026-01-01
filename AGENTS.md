@@ -9,8 +9,7 @@ them through database connectors. Key modules:
 
 - `sqlcheck/cli/` — CLI entry points and command helpers.
 - `sqlcheck/runner.py` — test discovery/execution and result handling.
-- `sqlcheck/db_connector.py` — base connector abstractions and execution result types.
-- `sqlcheck/adapters/` — concrete connector implementations.
+- `sqlcheck/db_connector.py` — connector base abstractions and SQLAlchemy connector implementation.
 - `sqlcheck/models.py` — dataclasses and typed structures used across the codebase.
 - `tests/` — pytest-based test suite.
 
@@ -31,7 +30,7 @@ them through database connectors. Key modules:
 
 ## Connector patterns
 - Base types live in `sqlcheck/db_connector.py`.
-- Concrete implementations should subclass `CommandDBConnector` or `DBConnector`.
+- Concrete implementations should subclass `CommandDBConnector` or `DBConnector` and live alongside the base types unless a new module is introduced.
 - Keep `ExecutionResult` return values consistent (status + output).
 
 ## Reporting

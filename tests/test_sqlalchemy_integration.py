@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from sqlcheck.adapters.sqlalchemy import SQLAlchemyAdapter
+from sqlcheck.db_connector import SQLAlchemyConnector
 from sqlcheck.functions import default_registry
 from sqlcheck.runner import build_test_case, run_test_case
 
@@ -19,7 +19,7 @@ class TestSQLAlchemyIntegration(unittest.TestCase):
                 encoding="utf-8",
             )
             case = build_test_case(sql_path)
-            adapter = SQLAlchemyAdapter("sqlite:///:memory:")
+            adapter = SQLAlchemyConnector("sqlite:///:memory:")
             result = run_test_case(case, adapter, default_registry())
             self.assertTrue(result.success)
 
