@@ -22,6 +22,7 @@ them through database connectors. Key modules:
 ## Testing
 - Install dev dependencies with: `uv sync --extra dev`
 - Run tests with: `uv run pytest`
+- Always run tests after making a change.
 - If tests are not run, state the reason in the final response.
 
 ## CLI conventions
