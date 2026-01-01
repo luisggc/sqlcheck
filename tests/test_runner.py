@@ -170,7 +170,7 @@ class TestRunner(unittest.TestCase):
         class RowsAdapter(DBConnector):
             def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
                 status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
-                output = ExecutionOutput(stdout="", stderr="", rows=[[1, 2]])
+                output = ExecutionOutput(stdout="", stderr="", rows=[[1]])
                 return ExecutionResult(status=status, output=output)
 
         result = run_test_case(case, RowsAdapter(), default_registry())
