@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from typing import Iterable
 
-from sqlcheck.functions import FunctionRegistry
+from sqlcheck.function_registry import FunctionRegistry
 
 
 def load_plugins(modules: Iterable[str], registry: FunctionRegistry) -> None:

@@ -177,11 +177,13 @@ Create a Python module with a `register(registry)` function:
 
 ```python
 # my_plugin.py
+from sqlcheck.function_context import current_context
 from sqlcheck.models import FunctionResult
 
 
 def register(registry):
-    def assert_rows(sql_parsed, status, output, min_rows=1, **kwargs):
+    def assert_rows(min_rows=1, **kwargs):
+        context = current_context()
         # Implement logic here based on stdout/stderr or engine-specific output
         return FunctionResult(name="assert_rows", success=True)
 

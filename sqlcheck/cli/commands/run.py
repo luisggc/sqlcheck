@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 
 from sqlcheck.cli.common import build_adapter, discover_cases, print_results
-from sqlcheck.functions import default_registry
+from sqlcheck.function_registry import default_registry
 from sqlcheck.plugins import load_plugins
 from sqlcheck.reports import write_json, write_junit, write_plan
 from sqlcheck.runner import run_cases

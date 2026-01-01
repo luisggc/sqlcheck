@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from xml.etree import ElementTree
 
-from sqlcheck.functions import default_registry
+from sqlcheck.function_registry import default_registry
 from sqlcheck.reports import write_json, write_junit, write_plan
 from sqlcheck.runner import build_test_case, run_test_case
 from sqlcheck.db_connector import DBConnector, ExecutionResult
