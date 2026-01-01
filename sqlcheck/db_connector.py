@@ -47,6 +47,7 @@ class SQLAlchemyConnector(CommandDBConnector):
         start = time.perf_counter()
         stdout = ""
         stderr = ""
+        rows: list[list[object]] = []
         returncode = 0
         success = True
         try:
@@ -58,16 +59,20 @@ class SQLAlchemyConnector(CommandDBConnector):
                     if not statements:
                         statements = []
                     for statement in statements or []:
-                        connection.exec_driver_sql(statement.text)
+                        result = connection.exec_driver_sql(statement.text)
+                        if result.returns_rows:
+                            rows = [list(row) for row in result.fetchall()]
                     if not statements and sql_parsed.source.strip():
-                        connection.exec_driver_sql(sql_parsed.source)
+                        result = connection.exec_driver_sql(sql_parsed.source)
+                        if result.returns_rows:
+                            rows = [list(row) for row in result.fetchall()]
         except SQLAlchemyError as exc:
             success = False
             returncode = 1
             stderr = str(exc)
         duration = time.perf_counter() - start
         status = ExecutionStatus(success=success, returncode=returncode, duration_s=duration)
-        output = ExecutionOutput(stdout=stdout, stderr=stderr)
+        output = ExecutionOutput(stdout=stdout, stderr=stderr, rows=rows)
         return ExecutionResult(status=status, output=output)
 
 

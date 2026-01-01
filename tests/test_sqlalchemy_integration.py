@@ -12,7 +12,7 @@ class TestSQLAlchemyIntegration(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             sql_path = Path(temp_dir) / "basic.sql"
             sql_path.write_text(
-                "{{ success() }}\n"
+                "{{ assess(result_equals=1) }}\n"
                 "CREATE TABLE test_table (id INTEGER);\n"
                 "INSERT INTO test_table VALUES (1);\n"
                 "SELECT * FROM test_table;\n",

@@ -107,12 +107,23 @@ Directives are un-commented blocks in the SQL source:
 
 ```sql
 {{ success(name="my test", tags=["smoke"], timeout=30, retries=1) }}
-{{ fail(error_contains="permission", error_regex="denied") }}
+{{ fail(error_match="re:permission.*denied") }}
+{{ assess(stdout_match="ok", stderr_match="warning") }}
+{{ assess(result_equals=0) }}
 ```
 
 - **`success(...)`**: Asserts the SQL executed without errors.
-- **`fail(...)`**: Asserts the SQL failed, optionally matching error text with
-  `error_contains` and/or `error_regex`.
+- **`fail(...)`**: Asserts the SQL failed, optionally matching stderr text with `error_match`.
+- **`assess(...)`**: Asserts output, error text, and result values. Supported params include:
+  - `stdout_match`: Match stdout (substring or regex).
+  - `stderr_match`: Match stderr (substring or regex).
+  - `error_match`: Match stderr (substring or regex) for error expectations.
+  - `output_match`: Match stringified query result rows (substring or regex).
+  - `result_equals`: Assert a result cell equals a value (default cell `(0, 0)`).
+  - `result_cell`: Tuple of `(row_index, column_index)` to pair with `result_equals`.
+
+Regex matching accepts either `re:<pattern>` or `/pattern/`. Plain strings are treated as
+substring matches.
 
 If no directive is provided, `sqlcheck` defaults to `success()`. The `name` parameter is optional;
 when omitted, the test name defaults to the file path.

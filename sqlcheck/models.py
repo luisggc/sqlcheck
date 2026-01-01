@@ -55,6 +55,7 @@ class ExecutionStatus:
 class ExecutionOutput:
     stdout: str
     stderr: str
+    rows: list[list[Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

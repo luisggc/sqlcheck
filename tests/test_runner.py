@@ -17,7 +17,11 @@ class FakeAdapter(DBConnector):
             returncode=0 if self.succeed else 1,
             duration_s=0.01,
         )
-        output = ExecutionOutput(stdout="ok" if self.succeed else "", stderr="" if self.succeed else "boom")
+        output = ExecutionOutput(
+            stdout="ok" if self.succeed else "",
+            stderr="" if self.succeed else "boom",
+            rows=[[0]] if self.succeed else [],
+        )
         return ExecutionResult(status=status, output=output)
 
 
@@ -40,7 +44,7 @@ class TestRunner(unittest.TestCase):
 
     def test_run_test_case_failure_expectation(self) -> None:
         path = Path("/tmp/fail.sql")
-        path.write_text("SELECT 1; {{ fail(error_contains='boom') }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ fail(error_match='boom') }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(False), default_registry())
         self.assertTrue(result.success)
@@ -88,6 +92,117 @@ class TestRunner(unittest.TestCase):
         result = run_test_case(case, FakeAdapter(True), default_registry())
         self.assertFalse(result.success)
         self.assertEqual(result.function_results[0].message, "Expected failure but execution succeeded")
+
+    def test_assess_matches_stdout_and_stderr(self) -> None:
+        path = Path("/tmp/assess-output.sql")
+        path.write_text(
+            "SELECT 1; {{ assess(stdout_match='ok', stderr_match='re:warn') }}",
+            encoding="utf-8",
+        )
+        case = build_test_case(path)
+
+        class OutputAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="ok", stderr="warning", rows=[])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, OutputAdapter(), default_registry())
+        self.assertTrue(result.success)
+        path.unlink()
+
+    def test_assess_matches_result_default_cell(self) -> None:
+        path = Path("/tmp/assess-result.sql")
+        path.write_text("SELECT 1; {{ assess(result_equals=0) }}", encoding="utf-8")
+        case = build_test_case(path)
+        result = run_test_case(case, FakeAdapter(True), default_registry())
+        self.assertTrue(result.success)
+        path.unlink()
+
+    def test_assess_matches_output_rows(self) -> None:
+        path = Path("/tmp/assess-rows.sql")
+        path.write_text("SELECT 1; {{ assess(output_match='1\\t2') }}", encoding="utf-8")
+        case = build_test_case(path)
+
+        class RowsAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="", stderr="", rows=[[1, 2]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, RowsAdapter(), default_registry())
+        self.assertTrue(result.success)
+        path.unlink()
+
+    def test_assess_fixture_stdout_stderr(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_stdout_stderr.sql"
+        case = build_test_case(path)
+
+        class OutputAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="ok", stderr="warning", rows=[])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, OutputAdapter(), default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_error_match(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_error_match.sql"
+        case = build_test_case(path)
+
+        class ErrorAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=False, returncode=1, duration_s=0.01)
+                output = ExecutionOutput(stdout="", stderr="boom", rows=[])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, ErrorAdapter(), default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_output_match(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_output_match.sql"
+        case = build_test_case(path)
+
+        class RowsAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="", stderr="", rows=[[1]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, RowsAdapter(), default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_result_cells(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_result_cells.sql"
+        case = build_test_case(path)
+
+        class ResultAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="", stderr="", rows=[[1]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, ResultAdapter(), default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_result_cells_two(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_result_cells_two.sql"
+        case = build_test_case(path)
+
+        class ResultAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="", stderr="", rows=[[2]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, ResultAdapter(), default_registry())
+        self.assertTrue(result.success)
 
 
 if __name__ == "__main__":
