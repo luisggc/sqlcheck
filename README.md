@@ -72,7 +72,7 @@ source .venv/bin/activate
 
 ### Prerequisites
 
-- **Python 3.10+**
+- **Python 3.11+**
 - **SQLAlchemy-compatible database connection**
 
 ## Quick start
@@ -107,23 +107,33 @@ Directives are un-commented blocks in the SQL source:
 
 ```sql
 {{ success(name="my test", tags=["smoke"], timeout=30, retries=1) }}
-{{ fail(error_match="re:permission.*denied") }}
-{{ assess(stdout_match="ok", stderr_match="warning") }}
-{{ assess(result_equals=0) }}
+{{ fail(match="'permission denied' in error_message") }}
+{{ assess(match="stdout == 'ok' && rows.size() == 1") }}
+{{ assess(match="status == 'fail' && 'type error' in error_message") }}
 ```
 
-- **`success(...)`**: Asserts the SQL executed without errors.
-- **`fail(...)`**: Asserts the SQL failed, optionally matching stderr text with `error_match`.
-- **`assess(...)`**: Asserts output, error text, and result values. Supported params include:
-  - `stdout_match`: Match stdout (substring or regex).
-  - `stderr_match`: Match stderr (substring or regex).
-  - `error_match`: Match stderr (substring or regex) for error expectations.
-  - `output_match`: Match stringified query result rows (substring or regex).
-  - `result_equals`: Assert a result cell equals a value (default cell `(0, 0)`).
-  - `result_cell`: Tuple of `(row_index, column_index)` to pair with `result_equals`.
+- **`success(...)`**: Asserts the SQL executed without errors. Optional `match` expressions add
+  further checks.
+- **`fail(...)`**: Asserts the SQL failed. Optional `match` expressions add further checks.
+- **`assess(...)`**: Evaluates a CEL (Common Expression Language) expression supplied via the
+  required `match` argument. The expression must evaluate to `true`.
 
-Regex matching accepts either `re:<pattern>` or `/pattern/`. Plain strings are treated as
-substring matches.
+CEL variables available to `match`:
+
+- `status`: `"success"` or `"fail"`.
+- `success`: Boolean success flag.
+- `returncode`: Integer return code.
+- `error_code`: String version of the return code.
+- `duration_s`: Execution duration in seconds.
+- `elapsed_ms`: Execution duration in milliseconds.
+- `stdout`: Captured stdout.
+- `stderr`: Captured stderr.
+- `error_message`: Alias for stderr.
+- `rows`: Query result rows as a list of lists.
+- `output`: Nested object with `stdout`, `stderr`, and `rows`.
+- `sql`: Full SQL source (directives stripped).
+- `statements`: List of parsed SQL statements.
+- `statement_count`: Count of parsed SQL statements.
 
 If no directive is provided, `sqlcheck` defaults to `success()`. The `name` parameter is optional;
 when omitted, the test name defaults to the file path.

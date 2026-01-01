@@ -1,3 +1,3 @@
-{{ assess(error_match="boom") }}
+{{ assess(match="'boom' in error_message") }}
 
 SELECT 1;

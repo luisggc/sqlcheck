@@ -45,7 +45,7 @@ class TestRunner(unittest.TestCase):
 
     def test_run_test_case_failure_expectation(self) -> None:
         path = Path("/tmp/fail.sql")
-        path.write_text("SELECT 1; {{ fail(error_match='boom') }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ fail(match=\"'boom' in error_message\") }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(False), default_registry())
         self.assertTrue(result.success)
@@ -86,7 +86,10 @@ class TestRunner(unittest.TestCase):
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(False), default_registry())
         self.assertFalse(result.success)
-        self.assertEqual(result.function_results[0].message, "Expected success but execution failed")
+        self.assertEqual(
+            result.function_results[0].message,
+            "Match expression 'success == true' evaluated to false",
+        )
 
     def test_expect_failure_but_succeeds(self) -> None:
         fixtures_dir = Path(__file__).resolve().parent / "fixtures_false_positives"
@@ -94,12 +97,15 @@ class TestRunner(unittest.TestCase):
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(True), default_registry())
         self.assertFalse(result.success)
-        self.assertEqual(result.function_results[0].message, "Expected failure but execution succeeded")
+        self.assertEqual(
+            result.function_results[0].message,
+            "Match expression 'success == false' evaluated to false",
+        )
 
     def test_assess_matches_stdout_and_stderr(self) -> None:
         path = Path("/tmp/assess-output.sql")
         path.write_text(
-            "SELECT 1; {{ assess(stdout_match='ok', stderr_match='re:warn') }}",
+            "SELECT 1; {{ assess(match=\"stdout == 'ok' && 'warn' in stderr\") }}",
             encoding="utf-8",
         )
         case = build_test_case(path)
@@ -116,7 +122,7 @@ class TestRunner(unittest.TestCase):
 
     def test_assess_matches_result_default_cell(self) -> None:
         path = Path("/tmp/assess-result.sql")
-        path.write_text("SELECT 1; {{ assess(result_equals=0) }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ assess(match=\"rows[0][0] == 0\") }}", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, FakeAdapter(True), default_registry())
         self.assertTrue(result.success)
@@ -124,7 +130,7 @@ class TestRunner(unittest.TestCase):
 
     def test_assess_matches_output_rows(self) -> None:
         path = Path("/tmp/assess-rows.sql")
-        path.write_text("SELECT 1; {{ assess(output_match='1\\t2') }}", encoding="utf-8")
+        path.write_text("SELECT 1; {{ assess(match=\"rows[0][0] == 1 && rows[0][1] == 2\") }}", encoding="utf-8")
         case = build_test_case(path)
 
         class RowsAdapter(DBConnector):

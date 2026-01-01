@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import re
 from typing import Any
+
+from cel import evaluate
 
 from sqlcheck.function_context import current_context
 from sqlcheck.models import FunctionResult
@@ -9,94 +10,78 @@ from sqlcheck.models import FunctionResult
 
 def assess(
     *_args: Any,
-    stdout_match: str | None = None,
-    stderr_match: str | None = None,
-    error_match: str | None = None,
-    output_match: str | None = None,
-    result_equals: Any | None = None,
-    result_cell: tuple[int, int] | None = None,
-    expect_success: bool | None = None,
+    match: str | None = None,
+    check: str | None = None,
     **_kwargs: Any,
 ) -> FunctionResult:
+    expression, error_message = _resolve_match_expression(match, check)
+    if expression is None:
+        return FunctionResult(
+            name="assess",
+            success=False,
+            message=error_message or "Match expression is required for assess()",
+        )
+    if not isinstance(expression, str):
+        return FunctionResult(
+            name="assess",
+            success=False,
+            message="Match expression must be a string",
+        )
     context = current_context()
-    status = context.status
-    output = context.output
-    if expect_success is not None and status.success != expect_success:
-        expectation = "success" if expect_success else "failure"
+    try:
+        result = evaluate(expression, _build_evaluation_context(context))
+    except Exception as exc:  # noqa: BLE001 - surface CEL evaluation errors
         return FunctionResult(
             name="assess",
             success=False,
-            message=f"Expected {expectation} but execution {'succeeded' if status.success else 'failed'}",
+            message=f"Match expression {expression!r} failed: {exc}",
         )
-    if error_match and not _match_text(error_match, output.stderr):
+    if not isinstance(result, bool):
         return FunctionResult(
             name="assess",
             success=False,
-            message=f"Expected error to match {error_match!r}",
+            message=f"Match expression {expression!r} did not evaluate to a boolean",
         )
-    if stderr_match and not _match_text(stderr_match, output.stderr):
+    if not result:
         return FunctionResult(
             name="assess",
             success=False,
-            message=f"Expected stderr to match {stderr_match!r}",
+            message=f"Match expression {expression!r} evaluated to false",
         )
-    if stdout_match and not _match_text(stdout_match, output.stdout):
-        return FunctionResult(
-            name="assess",
-            success=False,
-            message=f"Expected stdout to match {stdout_match!r}",
-        )
-    if output_match:
-        rendered = _render_rows(output.rows)
-        if not _match_text(output_match, rendered):
-            return FunctionResult(
-                name="assess",
-                success=False,
-                message=f"Expected output to match {output_match!r}",
-            )
-    if result_equals is not None:
-        row_index, col_index = result_cell or (0, 0)
-        if row_index < 0 or col_index < 0:
-            return FunctionResult(
-                name="assess",
-                success=False,
-                message="Expected result_cell to be non-negative indices",
-            )
-        if row_index >= len(output.rows):
-            return FunctionResult(
-                name="assess",
-                success=False,
-                message=f"Expected result row {row_index} but only {len(output.rows)} row(s) returned",
-            )
-        row = output.rows[row_index]
-        if col_index >= len(row):
-            return FunctionResult(
-                name="assess",
-                success=False,
-                message=f"Expected result column {col_index} but row has {len(row)} column(s)",
-            )
-        value = row[col_index]
-        if value != result_equals:
-            return FunctionResult(
-                name="assess",
-                success=False,
-                message=f"Expected result[{row_index}][{col_index}] to equal {result_equals!r}",
-            )
     return FunctionResult(name="assess", success=True)
 
 
-def _match_text(pattern: str, text: str) -> bool:
-    if pattern.startswith("re:"):
-        return re.search(pattern[3:], text) is not None
-    if len(pattern) >= 2 and pattern.startswith("/") and pattern.endswith("/"):
-        return re.search(pattern[1:-1], text) is not None
-    return pattern in text
+def _resolve_match_expression(
+    match: str | None,
+    check: str | None,
+) -> tuple[str | None, str | None]:
+    if match and check and match != check:
+        return None, "Provide only one of match or check"
+    return match or check, None
 
 
-def _render_rows(rows: list[list[Any]]) -> str:
-    if not rows:
-        return ""
-    rendered_rows = []
-    for row in rows:
-        rendered_rows.append("\t".join(str(value) for value in row))
-    return "\n".join(rendered_rows)
+def _build_evaluation_context(context: Any) -> dict[str, Any]:
+    status = context.status
+    output = context.output
+    sql_parsed = context.sql_parsed
+    status_label = "success" if status.success else "fail"
+    return {
+        "status": status_label,
+        "success": status.success,
+        "returncode": status.returncode,
+        "error_code": str(status.returncode),
+        "duration_s": status.duration_s,
+        "elapsed_ms": int(status.duration_s * 1000),
+        "stdout": output.stdout,
+        "stderr": output.stderr,
+        "error_message": output.stderr,
+        "rows": output.rows,
+        "output": {
+            "stdout": output.stdout,
+            "stderr": output.stderr,
+            "rows": output.rows,
+        },
+        "sql": sql_parsed.source,
+        "statements": [statement.text for statement in sql_parsed.statements],
+        "statement_count": len(sql_parsed.statements),
+    }
