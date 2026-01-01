@@ -1,16 +1,33 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import NoSuchModuleError, SQLAlchemyError
 
-from sqlcheck.adapters.base import Adapter, ExecutionResult
 from sqlcheck.models import ExecutionOutput, ExecutionStatus, SQLParsed
 
 
-class SQLAlchemyAdapter(Adapter):
+@dataclass(frozen=True)
+class ExecutionResult:
+    status: ExecutionStatus
+    output: ExecutionOutput
+
+
+class DBConnector:
+    name = "base"
+
+    def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+        raise NotImplementedError
+
+
+class CommandDBConnector(DBConnector):
+    pass
+
+
+class SQLAlchemyConnector(CommandDBConnector):
     name = "sqlalchemy"
 
     def __init__(self, connection_uri: str) -> None:

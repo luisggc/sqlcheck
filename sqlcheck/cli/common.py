@@ -10,8 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from sqlcheck.adapters.base import Adapter
-from sqlcheck.adapters.sqlalchemy import SQLAlchemyAdapter
+from sqlcheck.db_connector import DBConnector, SQLAlchemyConnector
 from sqlcheck.models import TestCase, TestResult
 from sqlcheck.runner import build_test_case, discover_files
 
@@ -37,9 +36,9 @@ def resolve_connection_uri(name: str) -> str:
     return value
 
 
-def build_adapter(connection: str) -> Adapter:
+def build_adapter(connection: str) -> DBConnector:
     connection_uri = resolve_connection_uri(connection)
-    return SQLAlchemyAdapter(connection_uri=connection_uri)
+    return SQLAlchemyConnector(connection_uri=connection_uri)
 
 
 def print_results(results: list[TestResult], engine: str | None = None) -> None:
