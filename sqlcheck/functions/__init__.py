@@ -5,7 +5,6 @@ from typing import Any, Callable
 
 from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult, SQLParsed
 
-
 FunctionType = Callable[[SQLParsed, ExecutionStatus, ExecutionOutput, Any], FunctionResult]
 
 
@@ -29,10 +28,8 @@ def success(
     *_args: Any,
     **_kwargs: Any,
 ) -> FunctionResult:
-    if status.success:
-        return FunctionResult(name="success", success=True)
-    message = "Expected success but execution failed"
-    return FunctionResult(name="success", success=False, message=message)
+    result = assess(sql_parsed, status, output, expect_success=True)
+    return FunctionResult(name="success", success=result.success, message=result.message)
 
 
 def fail(
@@ -43,15 +40,8 @@ def fail(
     error_match: str | None = None,
     **_kwargs: Any,
 ) -> FunctionResult:
-    if status.success:
-        return FunctionResult(name="fail", success=False, message="Expected failure but execution succeeded")
-    if error_match and not _match_text(error_match, output.stderr):
-        return FunctionResult(
-            name="fail",
-            success=False,
-            message=f"Expected error to match {error_match!r}",
-        )
-    return FunctionResult(name="fail", success=True)
+    result = assess(sql_parsed, status, output, expect_success=False, error_match=error_match)
+    return FunctionResult(name="fail", success=result.success, message=result.message)
 
 
 def assess(
