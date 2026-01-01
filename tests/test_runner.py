@@ -190,6 +190,20 @@ class TestRunner(unittest.TestCase):
         result = run_test_case(case, ResultAdapter(), default_registry())
         self.assertTrue(result.success)
 
+    def test_assess_fixture_result_cells_two(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_result_cells_two.sql"
+        case = build_test_case(path)
+
+        class ResultAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="", stderr="", rows=[[2]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, ResultAdapter(), default_registry())
+        self.assertTrue(result.success)
+
 
 if __name__ == "__main__":
     unittest.main()
