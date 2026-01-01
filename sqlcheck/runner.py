@@ -39,7 +39,7 @@ def build_test_case(path: Path) -> TestCase:
 def run_test_case(case: TestCase, adapter: Adapter, registry: FunctionRegistry) -> TestResult:
     execution: ExecutionResult | None = None
     for attempt in range(case.metadata.retries + 1):
-        execution = adapter.execute(case.sql_parsed.source, timeout=case.metadata.timeout)
+        execution = adapter.execute(case.sql_parsed, timeout=case.metadata.timeout)
         if execution.status.success or attempt >= case.metadata.retries:
             break
     if execution is None:

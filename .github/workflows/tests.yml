@@ -16,9 +16,10 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install package
-        run: uv sync --extra dev
-      - name: Install DuckDB CLI
-        run: |
-          curl https://install.duckdb.org | sh
+        run: uv sync --extra dev --extra duckdb
       - name: Run unit tests
         run: uv run python -m unittest discover -s tests
+      - name: Run SQLCheck against DuckDB in-memory
+        env:
+          SQLCHECK_CONN_DUCKDB: "duckdb:///:memory:"
+        run: uv run sqlcheck run tests/fixtures -c duckdb

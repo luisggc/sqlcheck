@@ -9,6 +9,7 @@ description = "CLI for SQL test validation"
 requires-python = ">=3.10"
 dependencies = [
   "rich>=14.2.0",
+  "SQLAlchemy>=2.0.0",
   "typer>=0.21.0",
 ]
 readme = "README.md"
@@ -28,8 +29,39 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
-  "duckdb",
   "pytest>=8.0.0",
+]
+postgres = [
+  "psycopg[binary]>=3.1.0",
+]
+mysql = [
+  "pymysql>=1.0.0",
+]
+snowflake = [
+  "snowflake-sqlalchemy>=1.5.0",
+]
+databricks = [
+  "databricks-sql-connector>=3.0.0",
+]
+duckdb = [
+  "duckdb>=1.0.0",
+  "duckdb-engine>=0.10.0",
+]
+mssql = [
+  "pyodbc>=5.0.0",
+]
+oracle = [
+  "oracledb>=2.0.0",
+]
+all = [
+  "psycopg[binary]>=3.1.0",
+  "pymysql>=1.0.0",
+  "snowflake-sqlalchemy>=1.5.0",
+  "databricks-sql-connector>=3.0.0",
+  "duckdb>=1.0.0",
+  "duckdb-engine>=0.10.0",
+  "pyodbc>=5.0.0",
+  "oracledb>=2.0.0",
 ]
 
 [project.scripts]
@@ -43,3 +75,6 @@ packages = ["sqlcheck"]
 
 [tool.uv]
 package = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from sqlcheck.adapters.base import Adapter, ExecutionResult
 from sqlcheck.functions import FunctionRegistry, default_registry
-from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult
+from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult, SQLParsed
 from sqlcheck.runner import build_test_case, run_cases, run_test_case
 
 
@@ -11,7 +11,7 @@ class FakeAdapter(Adapter):
     def __init__(self, succeed: bool = True) -> None:
         self.succeed = succeed
 
-    def execute(self, sql: str, timeout: float | None = None) -> ExecutionResult:
+    def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
         status = ExecutionStatus(
             success=self.succeed,
             returncode=0 if self.succeed else 1,
