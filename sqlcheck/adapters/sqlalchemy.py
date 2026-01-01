@@ -6,11 +6,11 @@ from urllib.parse import urlparse
 from sqlalchemy import create_engine
 from sqlalchemy.exc import NoSuchModuleError, SQLAlchemyError
 
-from sqlcheck.adapters.base import Adapter, ExecutionResult
+from sqlcheck.db_connector import CommandDBConnector, ExecutionResult
 from sqlcheck.models import ExecutionOutput, ExecutionStatus, SQLParsed
 
 
-class SQLAlchemyAdapter(Adapter):
+class SQLAlchemyAdapter(CommandDBConnector):
     name = "sqlalchemy"
 
     def __init__(self, connection_uri: str) -> None:

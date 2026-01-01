@@ -11,8 +11,12 @@ class ExecutionResult:
     output: ExecutionOutput
 
 
-class Adapter:
+class DBConnector:
     name = "base"
 
     def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
         raise NotImplementedError
+
+
+class CommandDBConnector(DBConnector):
+    pass

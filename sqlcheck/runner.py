@@ -4,7 +4,7 @@ import concurrent.futures
 from pathlib import Path
 from typing import Iterable
 
-from sqlcheck.adapters.base import Adapter, ExecutionResult
+from sqlcheck.db_connector import DBConnector, ExecutionResult
 from sqlcheck.functions import FunctionRegistry
 from sqlcheck.models import (
     DirectiveCall,
@@ -36,7 +36,7 @@ def build_test_case(path: Path) -> TestCase:
     return TestCase(path=path, sql_parsed=parsed.sql_parsed, directives=directives, metadata=metadata)
 
 
-def run_test_case(case: TestCase, adapter: Adapter, registry: FunctionRegistry) -> TestResult:
+def run_test_case(case: TestCase, adapter: DBConnector, registry: FunctionRegistry) -> TestResult:
     execution: ExecutionResult | None = None
     for attempt in range(case.metadata.retries + 1):
         execution = adapter.execute(case.sql_parsed, timeout=case.metadata.timeout)
@@ -56,7 +56,7 @@ def run_test_case(case: TestCase, adapter: Adapter, registry: FunctionRegistry) 
 
 def run_cases(
     cases: Iterable[TestCase],
-    adapter: Adapter,
+    adapter: DBConnector,
     registry: FunctionRegistry,
     workers: int,
 ) -> list[TestResult]:

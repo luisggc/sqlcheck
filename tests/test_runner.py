@@ -1,13 +1,13 @@
 import unittest
 from pathlib import Path
 
-from sqlcheck.adapters.base import Adapter, ExecutionResult
+from sqlcheck.db_connector import DBConnector, ExecutionResult
 from sqlcheck.functions import FunctionRegistry, default_registry
 from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult, SQLParsed
 from sqlcheck.runner import build_test_case, run_cases, run_test_case
 
 
-class FakeAdapter(Adapter):
+class FakeAdapter(DBConnector):
     def __init__(self, succeed: bool = True) -> None:
         self.succeed = succeed
 

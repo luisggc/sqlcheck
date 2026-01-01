@@ -21,7 +21,7 @@ def run(
         ...,
         "--connection",
         "-c",
-        help="Connection name for SQLCHECK_CONN_<NAME> environment lookup",
+        help="Connector name for SQLCHECK_CONN_<NAME> environment lookup",
     ),
     json_path: Path | None = typer.Option(
         None, "--json", help="Write JSON report to path"
