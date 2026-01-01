@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from sqlcheck.db_connector import SQLAlchemyConnector
-from sqlcheck.functions import default_registry
+from sqlcheck.function_registry import default_registry
 from sqlcheck.runner import build_test_case, run_test_case
 
 

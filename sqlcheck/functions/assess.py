@@ -3,13 +3,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult, SQLParsed
+from sqlcheck.function_context import current_context
+from sqlcheck.models import FunctionResult
 
 
 def assess(
-    sql_parsed: SQLParsed,
-    status: ExecutionStatus,
-    output: ExecutionOutput,
     *_args: Any,
     stdout_match: str | None = None,
     stderr_match: str | None = None,
@@ -20,6 +18,9 @@ def assess(
     expect_success: bool | None = None,
     **_kwargs: Any,
 ) -> FunctionResult:
+    context = current_context()
+    status = context.status
+    output = context.output
     if expect_success is not None and status.success != expect_success:
         expectation = "success" if expect_success else "failure"
         return FunctionResult(

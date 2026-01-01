@@ -2,7 +2,8 @@ import unittest
 from pathlib import Path
 
 from sqlcheck.db_connector import DBConnector, ExecutionResult
-from sqlcheck.functions import FunctionRegistry, default_registry
+from sqlcheck.function_context import current_context
+from sqlcheck.function_registry import FunctionRegistry, default_registry
 from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult, SQLParsed
 from sqlcheck.runner import build_test_case, run_cases, run_test_case
 
@@ -68,7 +69,9 @@ class TestRunner(unittest.TestCase):
 
         registry = FunctionRegistry()
 
-        def custom(sql_parsed, status, output, check: str):
+        def custom(check: str):
+            context = current_context()
+            self.assertEqual(context.status.success, True)
             self.assertEqual(check, "ok")
             return FunctionResult(name="custom", success=True, message=None)
 

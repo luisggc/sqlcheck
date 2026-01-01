@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Iterable
 
 from sqlcheck.db_connector import DBConnector, ExecutionResult
-from sqlcheck.functions import FunctionRegistry
+from sqlcheck.function_context import execution_context
+from sqlcheck.function_registry import FunctionRegistry
 from sqlcheck.models import (
     DirectiveCall,
     FunctionResult,
@@ -49,7 +50,8 @@ def run_test_case(case: TestCase, adapter: DBConnector, registry: FunctionRegist
     function_results: list[FunctionResult] = []
     for directive in case.directives:
         func = registry.resolve(directive.name)
-        result = func(case.sql_parsed, status, output, *directive.args, **directive.kwargs)
+        with execution_context(case.sql_parsed, status, output):
+            result = func(*directive.args, **directive.kwargs)
         function_results.append(result)
     return TestResult(case=case, status=status, output=output, function_results=function_results)
 

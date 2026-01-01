@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Callable
 
 from sqlcheck.functions.assess import assess
 from sqlcheck.functions.fail import fail
 from sqlcheck.functions.success import success
-from sqlcheck.models import ExecutionOutput, ExecutionStatus, FunctionResult, SQLParsed
+from sqlcheck.models import FunctionResult
 
-FunctionType = Callable[[SQLParsed, ExecutionStatus, ExecutionOutput, Any], FunctionResult]
+FunctionType = Callable[..., FunctionResult]
 
 
 class FunctionRegistry:
