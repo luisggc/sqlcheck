@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from sqlcheck.adapters.base import CommandAdapter
+from sqlcheck.db_connector import CommandDBConnector
 
 
-class SnowflakeAdapter(CommandAdapter):
+class SnowflakeAdapter(CommandDBConnector):
     name = "snowflake"
     command_name = "snow"
 

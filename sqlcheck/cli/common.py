@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from sqlcheck.adapters.base import Adapter, CommandAdapter
+from sqlcheck.db_connector import DBConnector, CommandDBConnector
 from sqlcheck.adapters.duckdb import DuckDBAdapter
 from sqlcheck.adapters.snowflake import SnowflakeAdapter
 from sqlcheck.models import TestCase, TestResult
@@ -24,28 +24,28 @@ def discover_cases(target: Path, pattern: str) -> list[TestCase]:
     return [build_test_case(path) for path in paths]
 
 
-def _get_adapter_registry() -> dict[str, type[Adapter]]:
-    """Automatically discover and register all Adapter subclasses by their name."""
-    registry: dict[str, type[Adapter]] = {}
+def _get_connector_registry() -> dict[str, type[DBConnector]]:
+    """Automatically discover and register all DBConnector subclasses by their name."""
+    registry: dict[str, type[DBConnector]] = {}
 
-    def register_subclasses(cls: type[Adapter]) -> None:
+    def register_subclasses(cls: type[DBConnector]) -> None:
         for subclass in cls.__subclasses__():
             if hasattr(subclass, "name"):
                 registry[subclass.name] = subclass
             register_subclasses(subclass)
 
-    register_subclasses(Adapter)
+    register_subclasses(DBConnector)
     return registry
 
 
-def build_adapter(engine: str, engine_args: list[str] | None) -> Adapter:
+def build_adapter(engine: str, engine_args: list[str] | None) -> DBConnector:
     command_template = os.getenv("SQLCHECK_ENGINE_COMMAND")
 
-    # Special handling for "base" adapter with custom command template
+    # Special handling for "base" connector with custom command template
     if engine == "base":
-        return CommandAdapter(engine_args=engine_args, command_template=command_template)
+        return CommandDBConnector(engine_args=engine_args, command_template=command_template)
 
-    registry = _get_adapter_registry()
+    registry = _get_connector_registry()
     adapter_class = registry.get(engine)
     if adapter_class is None:
         available = ", ".join(["base"] + sorted(registry.keys()))

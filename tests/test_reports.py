@@ -7,11 +7,11 @@ from xml.etree import ElementTree
 from sqlcheck.functions import default_registry
 from sqlcheck.reports import write_json, write_junit, write_plan
 from sqlcheck.runner import build_test_case, run_test_case
-from sqlcheck.adapters.base import Adapter, ExecutionResult
+from sqlcheck.db_connector import DBConnector, ExecutionResult
 from sqlcheck.models import ExecutionOutput, ExecutionStatus
 
 
-class FakeAdapter(Adapter):
+class FakeAdapter(DBConnector):
     def __init__(self, succeed: bool = True) -> None:
         self.succeed = succeed
 

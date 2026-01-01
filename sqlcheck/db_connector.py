@@ -16,14 +16,14 @@ class ExecutionResult:
     output: ExecutionOutput
 
 
-class Adapter:
+class DBConnector:
     name = "base"
 
     def execute(self, sql: str, timeout: float | None = None) -> ExecutionResult:
         raise NotImplementedError
 
 
-class CommandAdapter(Adapter):
+class CommandDBConnector(DBConnector):
     command_name: str | None = None
 
     def __init__(

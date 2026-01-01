@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from sqlcheck.adapters.base import CommandAdapter
+from sqlcheck.db_connector import CommandDBConnector
 
 
-class DuckDBAdapter(CommandAdapter):
+class DuckDBAdapter(CommandDBConnector):
     name = "duckdb"
     command_name = "duckdb"
 
