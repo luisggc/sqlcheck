@@ -110,13 +110,14 @@ Directives are un-commented blocks in the SQL source:
 {{ fail(match="'permission denied' in error_message") }}
 {{ assess(match="stdout == 'ok' && rows.size() == 1") }}
 {{ assess(match="status == 'fail' && 'type error' in error_message") }}
+{{ assess(check="stdout.matches('^ok') && returncode == 0") }}
 ```
 
 - **`success(...)`**: Asserts the SQL executed without errors. Optional `match` expressions add
   further checks.
 - **`fail(...)`**: Asserts the SQL failed. Optional `match` expressions add further checks.
 - **`assess(...)`**: Evaluates a CEL (Common Expression Language) expression supplied via the
-  required `match` argument. The expression must evaluate to `true`.
+  required `match` (or `check`) argument. The expression must evaluate to `true`.
 
 CEL variables available to `match`:
 
@@ -134,6 +135,14 @@ CEL variables available to `match`:
 - `sql`: Full SQL source (directives stripped).
 - `statements`: List of parsed SQL statements.
 - `statement_count`: Count of parsed SQL statements.
+
+Common CEL expressions:
+
+- Contains text: `stdout.contains("warning")`
+- Regex match: `stdout.matches("^ok")` or `matches(stdout, "^ok")`
+- Comparisons: `returncode != 0`, `statement_count >= 1`
+- Row assertions: `rows.size() == 1`, `rows[0][0] > 0`
+- Status checks: `status == "success"`, `success == true`
 
 If no directive is provided, `sqlcheck` defaults to `success()`. The `name` parameter is optional;
 when omitted, the test name defaults to the file path.

@@ -143,6 +143,46 @@ class TestRunner(unittest.TestCase):
         self.assertTrue(result.success)
         path.unlink()
 
+    def test_assess_fixture_check_regex(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_check_regex.sql"
+        case = build_test_case(path)
+
+        class OutputAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="ok", stderr="", rows=[])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, OutputAdapter(), default_registry())
+        self.assertTrue(result.success)
+    def test_assess_fixture_check_complex_expression(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_check_complex.sql"
+        case = build_test_case(path)
+
+        class ComplexAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.01)
+                output = ExecutionOutput(stdout="ok", stderr="", rows=[[3]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, ComplexAdapter(), default_registry())
+        self.assertTrue(result.success)
+    def test_assess_fixture_check_comparisons(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_check_comparisons.sql"
+        case = build_test_case(path)
+
+        class ComparisonAdapter(DBConnector):
+            def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                status = ExecutionStatus(success=True, returncode=0, duration_s=0.02)
+                output = ExecutionOutput(stdout="", stderr="", rows=[[5]])
+                return ExecutionResult(status=status, output=output)
+
+        result = run_test_case(case, ComparisonAdapter(), default_registry())
+        self.assertTrue(result.success)
+
     def test_assess_fixture_stdout_stderr(self) -> None:
         fixtures_dir = Path(__file__).resolve().parent / "fixtures"
         path = fixtures_dir / "assess_stdout_stderr.sql"
