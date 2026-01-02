@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from sqlcheck.models import DirectiveCall, SQLParsed, SQLStatement
+from sqlcheck.models import DirectiveCall, SQLParsed, SQLSegment, SQLStatement
 
 DIRECTIVE_PATTERN = re.compile(r"\{\{\s*(.+?)\s*\}\}", re.DOTALL)
 
@@ -95,19 +95,63 @@ def strip_directives(source: str) -> str:
     return DIRECTIVE_PATTERN.sub("", source)
 
 
+def _segment_sql(source: str, directives: list[DirectiveCall]) -> list[SQLSegment]:
+    segments: list[SQLSegment] = []
+    matches = list(DIRECTIVE_PATTERN.finditer(source))
+    if len(matches) != len(directives):
+        raise DirectiveParseError("Directive list does not match source")
+    cursor = 0
+    pending_directive: DirectiveCall | None = None
+    pending_sql = ""
+
+    def build_segment(directive: DirectiveCall, sql_text: str) -> None:
+        sql_source = strip_directives(sql_text)
+        statements = _split_statements(sql_source)
+        segments.append(SQLSegment(sql_parsed=SQLParsed(source=sql_source, statements=statements), directive=directive))
+
+    for match, directive in zip(matches, directives, strict=True):
+        sql_chunk = source[cursor : match.start()]
+        pending_sql += sql_chunk
+        if pending_directive is not None and strip_directives(pending_sql).strip():
+            build_segment(pending_directive, pending_sql)
+            pending_directive = None
+            pending_sql = ""
+        elif pending_directive is None and strip_directives(pending_sql).strip():
+            build_segment(directive, pending_sql)
+            pending_sql = ""
+            cursor = match.end()
+            continue
+        pending_directive = directive
+        cursor = match.end()
+    pending_sql += source[cursor:]
+    if pending_directive is not None:
+        build_segment(pending_directive, pending_sql)
+        pending_sql = ""
+    if strip_directives(pending_sql).strip():
+        build_segment(
+            DirectiveCall(name="success", args=(), kwargs={}, raw=""),
+            pending_sql,
+        )
+    return segments
+
+
 @dataclass(frozen=True)
 class ParsedFile:
     sql_parsed: SQLParsed
     directives: list[DirectiveCall]
+    segments: list[SQLSegment]
 
 
 def parse_file(path: Path) -> ParsedFile:
     source = path.read_text(encoding="utf-8")
     directives = parse_directives(source)
+    if any(directive.name == "config" for directive in directives):
+        raise DirectiveParseError("config() is not supported; use exit_on_failure on directives")
     sql_source = strip_directives(source)
     statements = _split_statements(sql_source)
     sql_parsed = SQLParsed(source=sql_source, statements=statements)
-    return ParsedFile(sql_parsed=sql_parsed, directives=directives)
+    segments = _segment_sql(source, directives)
+    return ParsedFile(sql_parsed=sql_parsed, directives=directives, segments=segments)
 
 
 def summarize_directives(directives: Iterable[DirectiveCall]) -> dict[str, Any]:

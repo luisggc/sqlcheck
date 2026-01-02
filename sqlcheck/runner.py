@@ -34,26 +34,43 @@ def build_test_case(path: Path) -> TestCase:
         timeout=summary["timeout"],
         retries=summary["retries"],
     )
-    return TestCase(path=path, sql_parsed=parsed.sql_parsed, directives=directives, metadata=metadata)
+    return TestCase(
+        path=path,
+        sql_parsed=parsed.sql_parsed,
+        directives=directives,
+        segments=parsed.segments,
+        metadata=metadata,
+    )
 
 
 def run_test_case(case: TestCase, adapter: DBConnector, registry: FunctionRegistry) -> TestResult:
     execution: ExecutionResult | None = None
-    for attempt in range(case.metadata.retries + 1):
-        execution = adapter.execute(case.sql_parsed, timeout=case.metadata.timeout)
-        if execution.status.success or attempt >= case.metadata.retries:
-            break
+    function_results: list[FunctionResult] = []
+    with adapter.open_session() as session:
+        for segment in case.segments:
+            for attempt in range(case.metadata.retries + 1):
+                execution = session.execute(segment.sql_parsed, timeout=case.metadata.timeout)
+                if execution.status.success or attempt >= case.metadata.retries:
+                    break
+            if execution is None:
+                raise RuntimeError("Execution never started")
+            status = execution.status
+            output = execution.output
+            exit_on_failure = segment.directive.kwargs.get("exit_on_failure", True)
+            func = registry.resolve(segment.directive.name)
+            kwargs = {
+                key: value
+                for key, value in segment.directive.kwargs.items()
+                if key != "exit_on_failure"
+            }
+            with execution_context(segment.sql_parsed, status, output):
+                result = func(*segment.directive.args, **kwargs)
+            function_results.append(result)
+            if exit_on_failure and not result.success:
+                break
     if execution is None:
         raise RuntimeError("Execution never started")
-    status = execution.status
-    output = execution.output
-    function_results: list[FunctionResult] = []
-    for directive in case.directives:
-        func = registry.resolve(directive.name)
-        with execution_context(case.sql_parsed, status, output):
-            result = func(*directive.args, **directive.kwargs)
-        function_results.append(result)
-    return TestResult(case=case, status=status, output=output, function_results=function_results)
+    return TestResult(case=case, status=execution.status, output=execution.output, function_results=function_results)
 
 
 def run_cases(
