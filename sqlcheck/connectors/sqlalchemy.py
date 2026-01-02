@@ -85,13 +85,11 @@ def _dialect_from_uri(connection_uri: str) -> str:
 
 def _driver_hint(dialect: str) -> str:
     hints = {
-        "snowflake": "Install it with: pip install snowflake-sqlalchemy",
-        "duckdb": "Install it with: pip install duckdb duckdb-engine",
-        "postgresql": "Install it with: pip install psycopg[binary]",
-        "mysql": "Install it with: pip install pymysql",
-        "databricks": "Install it with: pip install databricks-sql-connector",
-        "mssql": "Install it with: pip install pyodbc",
-        "oracle": "Install it with: pip install oracledb",
+        "snowflake": "Install the optional dependency with: pip install sqlcheck[snowflake]",
+        "duckdb": "Install the optional dependency with: pip install sqlcheck[duckdb]",
+        "postgresql": "Install the optional dependency with: pip install sqlcheck[postgres]",
+        "mysql": "Install the optional dependency with: pip install sqlcheck[mysql]",
+        "databricks": "Install the optional dependency with: pip install sqlcheck[databricks]",
     }
     message = hints.get(
         dialect,
