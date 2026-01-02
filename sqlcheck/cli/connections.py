@@ -23,7 +23,4 @@ def build_connector(connection: str) -> DBConnector:
     connection_uri = resolve_connection_uri(connection)
     return SQLAlchemyConnector(connection_uri=connection_uri)
 
-
-build_adapter = build_connector
-
-__all__ = ["build_adapter", "build_connector", "resolve_connection_uri"]
+__all__ = ["build_connector", "resolve_connection_uri"]

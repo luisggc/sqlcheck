@@ -9,10 +9,14 @@ from sqlcheck.function_registry import FunctionRegistry
 from sqlcheck.models import FunctionResult, TestCase, TestResult
 
 
-def run_test_case(case: TestCase, adapter: DBConnector, registry: FunctionRegistry) -> TestResult:
+def run_test_case(
+    case: TestCase,
+    connector: DBConnector,
+    registry: FunctionRegistry,
+) -> TestResult:
     execution: ExecutionResult | None = None
     function_results: list[FunctionResult] = []
-    with adapter.open_session() as session:
+    with connector.open_session() as session:
         for segment in case.segments:
             for attempt in range(case.metadata.retries + 1):
                 execution = session.execute(segment.sql_parsed, timeout=case.metadata.timeout)
@@ -46,7 +50,7 @@ def run_test_case(case: TestCase, adapter: DBConnector, registry: FunctionRegist
 
 def run_cases(
     cases: Iterable[TestCase],
-    adapter: DBConnector,
+    connector: DBConnector,
     registry: FunctionRegistry,
     workers: int,
 ) -> list[TestResult]:
@@ -56,13 +60,13 @@ def run_cases(
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         future_map = {
-            executor.submit(run_test_case, case, adapter, registry): case
+            executor.submit(run_test_case, case, connector, registry): case
             for case in parallel_cases
         }
         for future in concurrent.futures.as_completed(future_map):
             results.append(future.result())
 
     for case in serial_cases:
-        results.append(run_test_case(case, adapter, registry))
+        results.append(run_test_case(case, connector, registry))
 
     return results
