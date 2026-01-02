@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Callable, Iterator
 from urllib.parse import urlparse
 
 from sqlalchemy import create_engine
@@ -16,11 +18,20 @@ class ExecutionResult:
     output: ExecutionOutput
 
 
+@dataclass(frozen=True)
+class DBSession:
+    execute: Callable[[SQLParsed, float | None], ExecutionResult]
+
+
 class DBConnector:
     name = "base"
 
     def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
         raise NotImplementedError
+
+    @contextmanager
+    def open_session(self) -> Iterator[DBSession]:
+        yield DBSession(self.execute)
 
 
 class CommandDBConnector(DBConnector):
@@ -44,6 +55,23 @@ class SQLAlchemyConnector(CommandDBConnector):
             raise ValueError(message) from exc
 
     def execute(self, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+        with self.engine.connect() as connection:
+            return self._execute_with_connection(connection, sql_parsed, timeout)
+
+    @contextmanager
+    def open_session(self) -> Iterator[DBSession]:
+        with self.engine.connect() as connection:
+            def _execute(sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
+                return self._execute_with_connection(connection, sql_parsed, timeout)
+
+            yield DBSession(_execute)
+
+    def _execute_with_connection(
+        self,
+        connection: object,
+        sql_parsed: SQLParsed,
+        timeout: float | None = None,
+    ) -> ExecutionResult:
         start = time.perf_counter()
         stdout = ""
         stderr = ""
@@ -51,21 +79,21 @@ class SQLAlchemyConnector(CommandDBConnector):
         returncode = 0
         success = True
         try:
-            with self.engine.connect() as connection:
-                if timeout is not None:
-                    connection = connection.execution_options(timeout=timeout)
-                with connection.begin():
-                    statements = sql_parsed.statements
-                    if not statements:
-                        statements = []
-                    for statement in statements or []:
-                        result = connection.exec_driver_sql(statement.text)
-                        if result.returns_rows:
-                            rows = [list(row) for row in result.fetchall()]
-                    if not statements and sql_parsed.source.strip():
-                        result = connection.exec_driver_sql(sql_parsed.source)
-                        if result.returns_rows:
-                            rows = [list(row) for row in result.fetchall()]
+            exec_connection = connection
+            if timeout is not None:
+                exec_connection = connection.execution_options(timeout=timeout)
+            with exec_connection.begin():
+                statements = sql_parsed.statements
+                if not statements:
+                    statements = []
+                for statement in statements or []:
+                    result = exec_connection.exec_driver_sql(statement.text)
+                    if result.returns_rows:
+                        rows = [list(row) for row in result.fetchall()]
+                if not statements and sql_parsed.source.strip():
+                    result = exec_connection.exec_driver_sql(sql_parsed.source)
+                    if result.returns_rows:
+                        rows = [list(row) for row in result.fetchall()]
         except SQLAlchemyError as exc:
             success = False
             returncode = 1

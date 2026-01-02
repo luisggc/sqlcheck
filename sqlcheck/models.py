@@ -28,6 +28,12 @@ class DirectiveCall:
 
 
 @dataclass(frozen=True)
+class SQLSegment:
+    sql_parsed: SQLParsed
+    directive: DirectiveCall
+
+
+@dataclass(frozen=True)
 class TestMetadata:
     name: str
     tags: list[str] = field(default_factory=list)
@@ -41,6 +47,7 @@ class TestCase:
     path: Path
     sql_parsed: SQLParsed
     directives: list[DirectiveCall]
+    segments: list[SQLSegment]
     metadata: TestMetadata
 
 
