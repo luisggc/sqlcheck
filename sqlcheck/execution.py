@@ -9,7 +9,11 @@ from sqlcheck.function_registry import FunctionRegistry
 from sqlcheck.models import FunctionResult, TestCase, TestResult
 
 
-def run_test_case(case: TestCase, connector: DBConnector, registry: FunctionRegistry) -> TestResult:
+def run_test_case(
+    case: TestCase,
+    connector: DBConnector,
+    registry: FunctionRegistry,
+) -> TestResult:
     execution: ExecutionResult | None = None
     function_results: list[FunctionResult] = []
     with connector.open_session() as session:

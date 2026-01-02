@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from sqlcheck.cli.common import discover_cases
+from sqlcheck.cli.discovery import discover_cases
 from sqlcheck.reports import build_plan_payload, write_case_plan
 
 
