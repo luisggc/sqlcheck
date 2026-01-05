@@ -7,26 +7,9 @@ from xml.etree import ElementTree
 from sqlcheck.function_registry import default_registry
 from sqlcheck.reports import write_json, write_junit, write_plan
 from sqlcheck.runner import build_test_case, run_test_case
-from sqlcheck.db_connector import DBConnector, ExecutionResult
-from sqlcheck.models import ExecutionOutput, ExecutionStatus
 
 
-class FakeAdapter(DBConnector):
-    def __init__(self, succeed: bool = True) -> None:
-        self.succeed = succeed
-
-    def execute(self, sql: str, timeout: float | None = None) -> ExecutionResult:
-        status = ExecutionStatus(
-            success=self.succeed,
-            returncode=0 if self.succeed else 1,
-            duration_s=0.01,
-        )
-        output = ExecutionOutput(
-            stdout="ok" if self.succeed else "",
-            stderr="" if self.succeed else "boom",
-            rows=[],
-        )
-        return ExecutionResult(status=status, output=output)
+TEST_CONNECTION = "sqlite:///:memory:"
 
 
 class TestReports(unittest.TestCase):
@@ -35,7 +18,7 @@ class TestReports(unittest.TestCase):
             sql_path = Path(temp_dir) / "sample.sql"
             sql_path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
             case = build_test_case(sql_path)
-            result = run_test_case(case, FakeAdapter(True), default_registry())
+            result = run_test_case(case, TEST_CONNECTION, default_registry())
 
             json_path = Path(temp_dir) / "report.json"
             junit_path = Path(temp_dir) / "report.xml"

@@ -66,6 +66,12 @@ class ExecutionOutput:
 
 
 @dataclass(frozen=True)
+class ExecutionResult:
+    status: ExecutionStatus
+    output: ExecutionOutput
+
+
+@dataclass(frozen=True)
 class FunctionResult:
     name: str
     success: bool

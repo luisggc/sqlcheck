@@ -4,7 +4,6 @@ from pathlib import Path
 
 import typer
 
-from sqlcheck.cli.connections import build_connector
 from sqlcheck.cli.discovery import discover_cases
 from sqlcheck.cli.output import print_results
 from sqlcheck.function_registry import default_registry
@@ -44,9 +43,7 @@ def run(
     if plugin:
         load_plugins(plugin, registry)
 
-    connector = build_connector(connection)
-
-    results = run_cases(cases, connector, registry, workers=workers)
+    results = run_cases(cases, connection, registry, workers=workers)
 
     print_results(results, engine=connection)
 
