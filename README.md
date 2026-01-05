@@ -88,18 +88,27 @@ INSERT INTO t VALUES (1);
 SELECT * FROM t;
 ```
 
-2. Run sqlcheck with a connection name:
+2. Run sqlcheck with a database connection:
 
 ```bash
-# Provide a connection URI via environment variable
+# Option 1: Set a default connection (no -c flag needed)
+export SQLCHECK_CONN_DEFAULT="sqlite:///tmp/sqlcheck.db"
+sqlcheck run tests/
+
+# Option 2: Use a named connection
 export SQLCHECK_CONN_DEV="sqlite:///tmp/sqlcheck.db"
 sqlcheck run tests/ --connection dev
 
 # Short flag works too
 sqlcheck run tests/ -c dev
+
+# Option 3: Pass a direct URL
+sqlcheck run tests/ -c "sqlite:///tmp/sqlcheck.db"
 ```
 
 If any test fails, `sqlcheck` exits with a non-zero status code.
+
+See [Connection configuration](#connection-configuration) for more options including YAML files.
 
 ## SQLTest directives
 
@@ -165,16 +174,98 @@ sqlcheck run TARGET [options]
 
 ## Connection configuration
 
-SQLCheck resolves connection URIs from environment variables. For a connection name like
-`snowflake_prod`, SQLCheck looks up `SQLCHECK_CONN_SNOWFLAKE_PROD`.
+SQLCheck resolves connection URIs in this order (first match wins):
+
+1. Default connection (when `-c` is omitted)
+2. Direct URL (if contains "://")
+3. Environment variables
+4. YAML configuration files
+
+### Environment variables
+
+SQLCheck supports two environment variable prefixes:
+
+- `SQLCHECK_CONN_{NAME}` — SQLAlchemy URL for a named connection
+- `DTK_CONN_{NAME}` — Alternative prefix for compatibility
+- `SQLCHECK_CONN_DEFAULT` — Default connection used when `-c` is omitted
+- `DTK_CONN_DEFAULT` — Alternative default connection
+
+Connection names are normalized by converting to uppercase and replacing non-alphanumeric
+characters with underscores.
+
+**Example:**
 
 ```bash
+export SQLCHECK_CONN_DEFAULT="sqlite:///tmp/sqlcheck.db"
 export SQLCHECK_CONN_SNOWFLAKE_PROD="snowflake://user:pass@account/db/schema"
+
+# Uses default connection
+sqlcheck run tests/
+
+# Uses snowflake_prod connection
 sqlcheck run tests/ --connection snowflake_prod
 ```
 
-Connection names are uppercased and any non-alphanumeric characters are converted to underscores
-before the lookup.
+### YAML configuration file (optional)
+
+For better organization and to avoid exposing credentials in environment variables, you can use a
+YAML configuration file.
+
+**Default locations** (checked in order):
+
+1. `~/.config/sqlcheck/connections.yaml`
+2. `~/.dtk/connections.yml`
+
+You can override the location using:
+
+```bash
+export SQLCHECK_CONNECTIONS_FILE="/path/to/your/connections.yaml"
+```
+
+**Example `~/.config/sqlcheck/connections.yaml`:**
+
+```yaml
+dev:
+  drivername: postgresql
+  username: myuser
+  password: ${DB_PASSWORD}  # Environment variables are expanded
+  host: localhost
+  port: 5432
+  database: testdb
+
+snowflake_prod:
+  drivername: snowflake
+  username: my_user
+  password: ${SNOWFLAKE_PASSWORD}
+  host: my_account
+  database: ANALYTICS
+  schema: PUBLIC
+  query:
+    warehouse: COMPUTE_WH
+    role: ANALYST
+
+# Simple URL format also works
+local: "sqlite:///tmp/local.db"
+```
+
+**Usage:**
+
+```bash
+# Uses connection defined in YAML
+sqlcheck run tests/ --connection dev
+
+# Environment variables in YAML are expanded
+export DB_PASSWORD="secret123"
+sqlcheck run tests/ --connection dev
+```
+
+### Direct URL
+
+You can also pass a connection URL directly (useful for testing):
+
+```bash
+sqlcheck run tests/ --connection "sqlite:///tmp/test.db"
+```
 
 ## Reports
 
