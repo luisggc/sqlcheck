@@ -88,7 +88,7 @@ class TestRunner(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertEqual(
             result.function_results[0].message,
-            "Match expression 'success == true' evaluated to false",
+            "Match expression 'success == true' evaluated to false\n  success = False",
         )
 
     def test_expect_failure_but_succeeds(self) -> None:
@@ -99,7 +99,7 @@ class TestRunner(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertEqual(
             result.function_results[0].message,
-            "Match expression 'success == false' evaluated to false",
+            "Match expression 'success == false' evaluated to false\n  success = True",
         )
 
     def test_assess_matches_stdout_and_stderr(self) -> None:

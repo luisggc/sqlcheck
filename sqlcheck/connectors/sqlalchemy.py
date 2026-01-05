@@ -19,7 +19,7 @@ class SQLAlchemyConnector(CommandDBConnector):
         self.connection_uri = connection_uri
         try:
             self.engine = create_engine(connection_uri)
-        except NoSuchModuleError as exc:
+        except (NoSuchModuleError, ModuleNotFoundError) as exc:
             dialect = _dialect_from_uri(connection_uri)
             hint = _driver_hint(dialect)
             message = (
