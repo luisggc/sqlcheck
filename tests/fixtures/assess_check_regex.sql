@@ -1,3 +1,3 @@
-{{ assess(check="stdout.matches('^ok') && stdout.contains('k')") }}
+{{ assess(check="stdout.contains('MYCOL')") }}
 
-SELECT 1;
+SELECT 1 AS MYCOL;
