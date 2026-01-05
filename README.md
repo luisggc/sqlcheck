@@ -20,46 +20,37 @@ execution.
 ### From PyPI
 
 ```bash
-pip install pysqlcheck
+uv tool install pysqlcheck
 ```
 
 SQLAlchemy requires a database-specific driver (dialect) package. Install the one for your
 database, for example:
 
 ```bash
-# PostgreSQL
-pip install pysqlcheck[postgres]
-
-# MySQL
-pip install pysqlcheck[mysql]
-
 # Snowflake
-pip install pysqlcheck[snowflake]
+uv tool install pysqlcheck[snowflake]
 ```
 
-Common optional extras (mirrors popular SQLAlchemy dialects) include:
-
-```bash
-# Databricks
-pip install pysqlcheck[databricks]
-
-# DuckDB
-pip install pysqlcheck[duckdb]
-
-# Microsoft SQL Server (ODBC)
-pip install pysqlcheck[mssql]
-
-# Oracle
-pip install pysqlcheck[oracle]
-
-# Everything above
-pip install pysqlcheck[all]
-```
+Common optional extras (mirrors popular SQLAlchemy dialects) include: databricks, mssql, duckdb, oracle...
 
 If you need a different database dialect, install the SQLAlchemy driver for it directly. See
 https://docs.sqlalchemy.org/en/20/dialects/ for the full list and driver guidance.
 
-### From source (recommended during development)
+### From GitHub (recommended)
+
+Install the latest version directly from GitHub using `uv`:
+
+```bash
+uv tool install git+https://github.com/luisggc/sqlcheck
+```
+
+To install from a specific branch:
+
+```bash
+uv tool install git+https://github.com/luisggc/sqlcheck@branch-name
+```
+
+### From source (for development)
 
 ```bash
 git clone <repo-url>
@@ -162,7 +153,7 @@ when omitted, the test name defaults to the file path.
 sqlcheck run TARGET [options]
 ```
 
-**Options**
+### Options
 
 - `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
