@@ -147,6 +147,18 @@ Common CEL expressions:
 If no directive is provided, `sqlcheck` defaults to `success()`. The `name` parameter is optional;
 when omitted, the test name defaults to the file path.
 
+## Template variables
+
+SQL files are rendered with Jinja before directives are extracted, so you can use template
+variables inside the SQL source (for example `{{ schema }}` or `{{ limit }}`). Supply values via
+`--vars` (repeatable `key=value` pairs).
+
+```bash
+sqlcheck run tests/ --vars schema=public --vars limit=10
+```
+
+Undefined variables raise a template error.
+
 ## CLI usage
 
 ```bash
@@ -158,6 +170,7 @@ sqlcheck run TARGET [options]
 - `--pattern`: Glob for discovery (default: `**/*.sql`).
 - `--workers`: Parallel worker count (default: 5).
 - `--connection`, `-c`: Connection name for `SQLCHECK_CONN_<NAME>` lookup.
+- `--vars`, `-v`: Template variables in `key=value` format (repeatable).
 - `--json`: Write JSON report to path.
 - `--junit`: Write JUnit XML report to path.
 - `--plan-dir`: Write per-test plan JSON files to a directory.

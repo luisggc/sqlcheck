@@ -135,3 +135,38 @@ def test_variable_in_assessment_expression():
         assert result.success
     finally:
         path.unlink()
+
+
+def test_skip_assess_when_env_is_dev():
+    """Skip assess directive when env is dev."""
+    sql_content = """
+    {{ success(name="skip assess on dev") }}
+    {% if env != "dev" %}
+    {{ assess(match="rows[0][0] == 1") }}
+    {% endif %}
+    SELECT 1;
+    """
+    path = Path("/tmp/jinja_skip_assess.sql")
+    path.write_text(sql_content, encoding="utf-8")
+
+    try:
+        case_dev = build_test_case(path, template_vars={"env": "dev"})
+        assert [directive.name for directive in case_dev.directives] == ["success"]
+        result_dev = run_test_case(case_dev, TEST_CONNECTION, default_registry())
+        assert result_dev.success
+
+        case_prod = build_test_case(path, template_vars={"env": "prod"})
+        assert [directive.name for directive in case_prod.directives] == ["success", "assess"]
+        result_prod = run_test_case(case_prod, TEST_CONNECTION, default_registry())
+        assert result_prod.success
+    finally:
+        path.unlink()
+
+
+def test_env_interpolated_in_assess_expression():
+    """Test Jinja interpolation inside assess match expression."""
+    path = Path(__file__).parent / "fixtures_jinja" / "jinja_env_in_assess.sql"
+    case = build_test_case(path, template_vars={"env": "dev"})
+
+    result = run_test_case(case, TEST_CONNECTION, default_registry())
+    assert result.success
