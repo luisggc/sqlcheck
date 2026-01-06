@@ -21,7 +21,7 @@ class TestRunner(unittest.TestCase):
 
     def test_run_test_case_success(self) -> None:
         path = Path("/tmp/success.sql")
-        path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
+        path.write_text("{{ success() }} SELECT 1;", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertTrue(result.success)
@@ -29,7 +29,7 @@ class TestRunner(unittest.TestCase):
 
     def test_run_test_case_failure_expectation(self) -> None:
         path = Path("/tmp/fail.sql")
-        path.write_text("SELECT * FROM nonexistent_table; {{ fail(match=\"'no such table' in error_message\") }}", encoding="utf-8")
+        path.write_text("{{ fail(match=\"'no such table' in error_message\") }} SELECT * FROM nonexistent_table;", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertTrue(result.success)
@@ -39,7 +39,7 @@ class TestRunner(unittest.TestCase):
         path_a = Path("/tmp/parallel.sql")
         path_b = Path("/tmp/serial.sql")
         path_a.write_text("SELECT 1;", encoding="utf-8")
-        path_b.write_text("SELECT 2; {{ success(serial=True) }}", encoding="utf-8")
+        path_b.write_text("{{ success(serial=True) }} SELECT 2;", encoding="utf-8")
         cases = [build_test_case(path_a), build_test_case(path_b)]
         results = run_cases(cases, TEST_CONNECTION, default_registry(), workers=2)
         self.assertEqual(len(results), 2)
@@ -48,7 +48,7 @@ class TestRunner(unittest.TestCase):
 
     def test_custom_registry_function(self) -> None:
         path = Path("/tmp/custom.sql")
-        path.write_text("SELECT 1; {{ custom(check='ok') }}", encoding="utf-8")
+        path.write_text("{{ custom(check='ok') }} SELECT 1;", encoding="utf-8")
         case = build_test_case(path)
 
         registry = FunctionRegistry()
@@ -70,7 +70,7 @@ class TestRunner(unittest.TestCase):
         case = build_test_case(path)
         # Modify the SQL to ensure it fails
         path_temp = Path("/tmp/expect_success_but_fail.sql")
-        path_temp.write_text("SELECT * FROM nonexistent_table; {{ success() }}", encoding="utf-8")
+        path_temp.write_text("{{ success() }} SELECT * FROM nonexistent_table;", encoding="utf-8")
         case = build_test_case(path_temp)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertFalse(result.success)
@@ -82,7 +82,7 @@ class TestRunner(unittest.TestCase):
         case = build_test_case(path)
         # Modify the SQL to ensure it succeeds
         path_temp = Path("/tmp/expect_fail_but_succeed.sql")
-        path_temp.write_text("SELECT 1; {{ fail() }}", encoding="utf-8")
+        path_temp.write_text("{{ fail() }} SELECT 1;", encoding="utf-8")
         case = build_test_case(path_temp)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertFalse(result.success)
@@ -90,7 +90,7 @@ class TestRunner(unittest.TestCase):
 
     def test_assess_matches_result_default_cell(self) -> None:
         path = Path("/tmp/assess-result.sql")
-        path.write_text("SELECT 0; {{ assess(match=\"rows[0][0] == 0\") }}", encoding="utf-8")
+        path.write_text("{{ assess(match=\"rows[0][0] == 0\") }} SELECT 0;", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertTrue(result.success)
@@ -98,7 +98,7 @@ class TestRunner(unittest.TestCase):
 
     def test_assess_matches_output_rows(self) -> None:
         path = Path("/tmp/assess-rows.sql")
-        path.write_text("SELECT 1 as col1, 2 as col2; {{ assess(match=\"rows[0][0] == 1 && rows[0][1] == 2\") }}", encoding="utf-8")
+        path.write_text("{{ assess(match=\"rows[0][0] == 1 && rows[0][1] == 2\") }} SELECT 1 as col1, 2 as col2;", encoding="utf-8")
         case = build_test_case(path)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertTrue(result.success)
