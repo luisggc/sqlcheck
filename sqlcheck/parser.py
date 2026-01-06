@@ -135,9 +135,8 @@ def _segment_sql_with_markers(
     """
     Pair SQL blocks with their controlling directives.
 
-    Handles both:
+    Handles:
     - Directive BEFORE SQL (new style): {{ assess() }} SELECT 1;
-    - Directive AFTER SQL (legacy style): SELECT 1; {{ assess() }}
     """
     if not markers:
         # No directives, create default segment with all SQL
@@ -151,55 +150,26 @@ def _segment_sql_with_markers(
             )]
         return []
 
-    segments = []
+    segments: list[SQLSegment] = []
+    chunks: list[str] = []
     cursor = 0
-    pending_directive = None
-    pending_sql = ""
 
-    for i, (marker, directive) in enumerate(zip(markers, directives)):
+    for marker in markers:
         marker_pos = rendered.find(marker.placeholder, cursor)
         if marker_pos == -1:
             continue
-
-        # Get SQL chunk before this marker
-        sql_chunk = rendered[cursor:marker_pos]
-        pending_sql += sql_chunk
-
-        # Clean SQL (strip markers)
-        sql_clean = pending_sql
-        for other_marker in markers:
-            sql_clean = sql_clean.replace(other_marker.placeholder, '')
-        sql_clean = sql_clean.strip()
-
-        # Decide what to do with this SQL and directive
-        if pending_directive is not None and sql_clean:
-            # We have a pending directive and SQL - create segment (new style)
-            statements = _split_statements(sql_clean)
-            segments.append(SQLSegment(
-                sql_parsed=SQLParsed(source=sql_clean, statements=statements),
-                directive=pending_directive
-            ))
-            pending_directive = None
-            pending_sql = ""
-
-
-        # Set current directive as pending
-        pending_directive = directive
-        pending_sql = ""
+        chunks.append(rendered[cursor:marker_pos])
         cursor = marker_pos + len(marker.placeholder)
+    chunks.append(rendered[cursor:])
 
-    # Handle remaining SQL after last directive
-    sql_after = rendered[cursor:]
-    sql_after_clean = sql_after
-    for marker in markers:
-        sql_after_clean = sql_after_clean.replace(marker.placeholder, '')
-    sql_after_clean = sql_after_clean.strip()
-
-    if sql_after_clean and pending_directive is not None:
-        statements = _split_statements(sql_after_clean)
+    for index, directive in enumerate(directives):
+        sql_after = chunks[index + 1].strip() if index + 1 < len(chunks) else ""
+        if not sql_after:
+            continue
+        statements = _split_statements(sql_after)
         segments.append(SQLSegment(
-            sql_parsed=SQLParsed(source=sql_after_clean, statements=statements),
-            directive=pending_directive
+            sql_parsed=SQLParsed(source=sql_after, statements=statements),
+            directive=directive
         ))
 
     return segments

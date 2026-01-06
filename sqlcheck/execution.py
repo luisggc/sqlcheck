@@ -30,7 +30,7 @@ def run_test_case(
         status = ExecutionStatus(success=False, returncode=1, duration_s=0.0)
         output = ExecutionOutput(
             stdout="",
-            stderr="No directives found in test case. Ensure directives are at the beginning of the file.",
+            stderr="There is no valid SQL statement after the check declaration.",
             rows=[],
         )
         # Return a TestResult indicating failure
@@ -42,7 +42,7 @@ def run_test_case(
                 FunctionResult(
                     name="parse_failure",
                     success=False,
-                    message="No directives found or parsed successfully.",
+                    message="There is no valid SQL statement after the check declaration.",
                 )
             ],
         )

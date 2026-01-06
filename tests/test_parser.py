@@ -71,6 +71,34 @@ class TestParser(unittest.TestCase):
             if path.exists():
                 path.unlink()
 
+    def test_trailing_directive_has_no_segment(self) -> None:
+        path = Path("/tmp/test.sql")
+        source = "SELECT 1; {{ success() }}"
+        path.write_text(source, encoding="utf-8")
+
+        try:
+            parsed = parse_file(path)
+            self.assertEqual(len(parsed.segments), 0)
+        finally:
+            if path.exists():
+                path.unlink()
+
+    def test_trailing_directive_after_multiple_statements_has_no_segment(self) -> None:
+        path = Path("/tmp/test.sql")
+        source = (
+            "CREATE TABLE items (id INT); "
+            "SELECT 1; "
+            "{{ assess(match=\"statement_count == 2\") }}"
+        )
+        path.write_text(source, encoding="utf-8")
+
+        try:
+            parsed = parse_file(path)
+            self.assertEqual(len(parsed.segments), 0)
+        finally:
+            if path.exists():
+                path.unlink()
+
 
 if __name__ == "__main__":
     unittest.main()
