@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import ast
-import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
 from sqlcheck.models import DirectiveCall, SQLParsed, SQLSegment, SQLStatement
-
-DIRECTIVE_PATTERN = re.compile(r"\{\{\s*(.+?)\s*\}\}", re.DOTALL)
 
 
 class DirectiveParseError(ValueError):
@@ -16,12 +12,14 @@ class DirectiveParseError(ValueError):
 
 
 def _split_statements(sql: str) -> list[SQLStatement]:
+    """Split SQL source into individual statements, respecting string literals."""
     statements: list[SQLStatement] = []
     buffer: list[str] = []
     start = 0
     in_single = False
     in_double = False
     escape = False
+
     for idx, char in enumerate(sql):
         if escape:
             buffer.append(char)
@@ -43,96 +41,11 @@ def _split_statements(sql: str) -> list[SQLStatement]:
             start = idx + 1
         else:
             buffer.append(char)
+
     tail = "".join(buffer).strip()
     if tail:
         statements.append(SQLStatement(len(statements), tail, start, len(sql)))
     return statements
-
-
-def _literal_eval(node: ast.AST) -> Any:
-    try:
-        return ast.literal_eval(node)
-    except (ValueError, SyntaxError) as exc:
-        raise DirectiveParseError(f"Unsupported literal in directive: {ast.dump(node)}") from exc
-
-
-def _parse_callable(expr: ast.expr) -> tuple[str, tuple[Any, ...], dict[str, Any]]:
-    if not isinstance(expr, ast.Call):
-        raise DirectiveParseError("Directive must be a function call")
-    func_name = _parse_func_name(expr.func)
-    args = tuple(_literal_eval(arg) for arg in expr.args)
-    kwargs: dict[str, Any] = {}
-    for kw in expr.keywords:
-        if kw.arg is None:
-            raise DirectiveParseError("Directive kwargs must be explicit key=value pairs")
-        kwargs[kw.arg] = _literal_eval(kw.value)
-    return func_name, args, kwargs
-
-
-def _parse_func_name(node: ast.AST) -> str:
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        return f"{_parse_func_name(node.value)}.{node.attr}"
-    raise DirectiveParseError("Unsupported function name in directive")
-
-
-def parse_directives(source: str) -> list[DirectiveCall]:
-    directives: list[DirectiveCall] = []
-    for match in DIRECTIVE_PATTERN.finditer(source):
-        raw = match.group(0)
-        inner = match.group(1)
-        try:
-            parsed = ast.parse(inner, mode="eval")
-        except SyntaxError as exc:
-            raise DirectiveParseError(f"Invalid directive syntax: {inner}") from exc
-        name, args, kwargs = _parse_callable(parsed.body)
-        directives.append(DirectiveCall(name=name, args=args, kwargs=kwargs, raw=raw))
-    return directives
-
-
-def strip_directives(source: str) -> str:
-    return DIRECTIVE_PATTERN.sub("", source)
-
-
-def _segment_sql(source: str, directives: list[DirectiveCall]) -> list[SQLSegment]:
-    segments: list[SQLSegment] = []
-    matches = list(DIRECTIVE_PATTERN.finditer(source))
-    if len(matches) != len(directives):
-        raise DirectiveParseError("Directive list does not match source")
-    cursor = 0
-    pending_directive: DirectiveCall | None = None
-    pending_sql = ""
-
-    def build_segment(directive: DirectiveCall, sql_text: str) -> None:
-        sql_source = strip_directives(sql_text)
-        statements = _split_statements(sql_source)
-        segments.append(SQLSegment(sql_parsed=SQLParsed(source=sql_source, statements=statements), directive=directive))
-
-    for match, directive in zip(matches, directives, strict=True):
-        sql_chunk = source[cursor : match.start()]
-        pending_sql += sql_chunk
-        if pending_directive is not None and strip_directives(pending_sql).strip():
-            build_segment(pending_directive, pending_sql)
-            pending_directive = None
-            pending_sql = ""
-        elif pending_directive is None and strip_directives(pending_sql).strip():
-            build_segment(directive, pending_sql)
-            pending_sql = ""
-            cursor = match.end()
-            continue
-        pending_directive = directive
-        cursor = match.end()
-    pending_sql += source[cursor:]
-    if pending_directive is not None:
-        build_segment(pending_directive, pending_sql)
-        pending_sql = ""
-    if strip_directives(pending_sql).strip():
-        build_segment(
-            DirectiveCall(name="success", args=(), kwargs={}, raw=""),
-            pending_sql,
-        )
-    return segments
 
 
 @dataclass(frozen=True)
@@ -140,21 +53,169 @@ class ParsedFile:
     sql_parsed: SQLParsed
     directives: list[DirectiveCall]
     segments: list[SQLSegment]
+    template_vars: dict[str, str] = field(default_factory=dict)
 
 
-def parse_file(path: Path) -> ParsedFile:
+def parse_file(path: Path, template_vars: dict[str, str] | None = None) -> ParsedFile:
+    """
+    Parse a SQL test file, extracting directives and SQL statements.
+
+    Uses Jinja2 to render template variables and extract directive function calls.
+
+    Args:
+        path: Path to SQL file
+        template_vars: Optional template variables for Jinja rendering
+
+    Returns:
+        ParsedFile containing directives, SQL, and segments
+
+    Raises:
+        DirectiveParseError: If template rendering or parsing fails
+    """
     source = path.read_text(encoding="utf-8")
-    directives = parse_directives(source)
+
+    # Render with Jinja, extracting both variables and directives
+    from sqlcheck.template import render_template, TemplateRenderError
+
+    try:
+        rendered, directive_markers = render_template(source, template_vars)
+    except TemplateRenderError as exc:
+        raise DirectiveParseError(
+            f"Template rendering failed for {path}: {exc}"
+        ) from exc
+
+    # Convert markers to DirectiveCall objects
+    directives = [
+        DirectiveCall(
+            name=marker.name,
+            args=marker.args,
+            kwargs=marker.kwargs,
+            raw=marker.raw_text
+        )
+        for marker in directive_markers
+    ]
+
+    # Check for deprecated config() directive
     if any(directive.name == "config" for directive in directives):
-        raise DirectiveParseError("config() is not supported; use exit_on_failure on directives")
-    sql_source = strip_directives(source)
+        raise DirectiveParseError(
+            "config() is not supported; use exit_on_failure on directives"
+        )
+
+    # Strip directive placeholders to get clean SQL
+    sql_source = _strip_directive_placeholders(rendered, directive_markers)
+
+    # Parse SQL statements
     statements = _split_statements(sql_source)
     sql_parsed = SQLParsed(source=sql_source, statements=statements)
-    segments = _segment_sql(source, directives)
-    return ParsedFile(sql_parsed=sql_parsed, directives=directives, segments=segments)
+
+    # Segment SQL with directives
+    segments = _segment_sql_with_markers(rendered, directive_markers, directives)
+
+    return ParsedFile(
+        sql_parsed=sql_parsed,
+        directives=directives,
+        segments=segments,
+        template_vars=template_vars or {},
+    )
+
+
+def _strip_directive_placeholders(rendered: str, markers: list) -> str:
+    """Remove directive placeholders from rendered SQL."""
+    result = rendered
+    for marker in markers:
+        result = result.replace(marker.placeholder, '')
+    return result.strip()
+
+
+def _segment_sql_with_markers(
+    rendered: str,
+    markers: list,
+    directives: list[DirectiveCall]
+) -> list[SQLSegment]:
+    """
+    Pair SQL blocks with their controlling directives.
+
+    Handles both:
+    - Directive BEFORE SQL (new style): {{ assess() }} SELECT 1;
+    - Directive AFTER SQL (legacy style): SELECT 1; {{ assess() }}
+    """
+    if not markers:
+        # No directives, create default segment with all SQL
+        sql_source = _strip_directive_placeholders(rendered, [])
+        if sql_source.strip():
+            statements = _split_statements(sql_source)
+            default_directive = DirectiveCall(name="success", args=(), kwargs={}, raw="")
+            return [SQLSegment(
+                sql_parsed=SQLParsed(source=sql_source, statements=statements),
+                directive=default_directive
+            )]
+        return []
+
+    segments = []
+    cursor = 0
+    pending_directive = None
+    pending_sql = ""
+
+    for i, (marker, directive) in enumerate(zip(markers, directives)):
+        marker_pos = rendered.find(marker.placeholder, cursor)
+        if marker_pos == -1:
+            continue
+
+        # Get SQL chunk before this marker
+        sql_chunk = rendered[cursor:marker_pos]
+        pending_sql += sql_chunk
+
+        # Clean SQL (strip markers)
+        sql_clean = pending_sql
+        for other_marker in markers:
+            sql_clean = sql_clean.replace(other_marker.placeholder, '')
+        sql_clean = sql_clean.strip()
+
+        # Decide what to do with this SQL and directive
+        if pending_directive is not None and sql_clean:
+            # We have a pending directive and SQL - create segment (new style)
+            statements = _split_statements(sql_clean)
+            segments.append(SQLSegment(
+                sql_parsed=SQLParsed(source=sql_clean, statements=statements),
+                directive=pending_directive
+            ))
+            pending_directive = None
+            pending_sql = ""
+        elif pending_directive is None and sql_clean:
+            # SQL before directive - legacy style
+            statements = _split_statements(sql_clean)
+            segments.append(SQLSegment(
+                sql_parsed=SQLParsed(source=sql_clean, statements=statements),
+                directive=directive
+            ))
+            pending_sql = ""
+            cursor = marker_pos + len(marker.placeholder)
+            continue
+
+        # Set current directive as pending
+        pending_directive = directive
+        pending_sql = ""
+        cursor = marker_pos + len(marker.placeholder)
+
+    # Handle remaining SQL after last directive
+    sql_after = rendered[cursor:]
+    sql_after_clean = sql_after
+    for marker in markers:
+        sql_after_clean = sql_after_clean.replace(marker.placeholder, '')
+    sql_after_clean = sql_after_clean.strip()
+
+    if sql_after_clean and pending_directive is not None:
+        statements = _split_statements(sql_after_clean)
+        segments.append(SQLSegment(
+            sql_parsed=SQLParsed(source=sql_after_clean, statements=statements),
+            directive=pending_directive
+        ))
+
+    return segments
 
 
 def summarize_directives(directives: Iterable[DirectiveCall]) -> dict[str, Any]:
+    """Extract metadata (name, tags, serial, timeout, retries) from directives."""
     summary: dict[str, Any] = {
         "serial": False,
         "timeout": None,

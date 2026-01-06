@@ -12,6 +12,42 @@ from sqlcheck.reports import write_json, write_junit, write_plan
 from sqlcheck.runner import run_cases
 
 
+def _parse_template_vars(vars_list: list[str]) -> dict[str, str]:
+    """
+    Parse template variables from key=value strings.
+
+    Args:
+        vars_list: List of "key=value" strings
+
+    Returns:
+        Dictionary mapping variable names to values
+
+    Raises:
+        typer.BadParameter: If any variable is malformed
+    """
+    variables = {}
+    for var_str in vars_list:
+        if "=" not in var_str:
+            raise typer.BadParameter(
+                f"Invalid variable format: {var_str!r}. "
+                "Expected format: key=value"
+            )
+        key, _, value = var_str.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            raise typer.BadParameter(
+                f"Invalid variable format: {var_str!r}. "
+                "Variable name cannot be empty"
+            )
+        if key in variables:
+            raise typer.BadParameter(
+                f"Duplicate variable: {key!r}"
+            )
+        variables[key] = value
+    return variables
+
+
 def run(
     target: Path = typer.Argument(..., help="Target file or directory to scan"),
     pattern: str = typer.Option(
@@ -36,8 +72,17 @@ def run(
     plugin: list[str] | None = typer.Option(
         None, "--plugin", help="Plugin module path to load (can be repeated)"
     ),
+    vars: list[str] | None = typer.Option(
+        None,
+        "--vars",
+        "-v",
+        help="Template variables in key=value format (repeatable)",
+    ),
 ) -> None:
-    cases = discover_cases(target, pattern)
+    # Parse template variables
+    template_vars = _parse_template_vars(vars or [])
+
+    cases = discover_cases(target, pattern, template_vars=template_vars)
 
     registry = default_registry()
     if plugin:

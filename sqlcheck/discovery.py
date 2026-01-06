@@ -12,8 +12,8 @@ def discover_files(target: Path, pattern: str) -> list[Path]:
     return sorted(target.rglob(pattern))
 
 
-def build_test_case(path: Path) -> TestCase:
-    parsed: ParsedFile = parse_file(path)
+def build_test_case(path: Path, template_vars: dict[str, str] | None = None) -> TestCase:
+    parsed: ParsedFile = parse_file(path, template_vars=template_vars)
     directives = parsed.directives or [DirectiveCall(name="success", args=(), kwargs={}, raw="")]
     summary = summarize_directives(directives)
     metadata = TestMetadata(
@@ -22,6 +22,7 @@ def build_test_case(path: Path) -> TestCase:
         serial=summary["serial"],
         timeout=summary["timeout"],
         retries=summary["retries"],
+        template_vars=template_vars or {},
     )
     return TestCase(
         path=path,

@@ -40,6 +40,7 @@ class TestMetadata:
     serial: bool = False
     timeout: float | None = None
     retries: int = 0
+    template_vars: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
