@@ -23,6 +23,30 @@ def run_test_case(
     connection_id: str,
     registry: FunctionRegistry,
 ) -> TestResult:
+    if not case.segments:
+        # If there are no segments, it means no directives were parsed,
+        # typically because SQL was found before the first directive.
+        # This is considered a test failure as the intended checks can't run.
+        status = ExecutionStatus(success=False, returncode=1, duration_s=0.0)
+        output = ExecutionOutput(
+            stdout="",
+            stderr="No directives found in test case. Ensure directives are at the beginning of the file.",
+            rows=[],
+        )
+        # Return a TestResult indicating failure
+        return TestResult(
+            case=case,
+            status=status,
+            output=output,
+            function_results=[
+                FunctionResult(
+                    name="parse_failure",
+                    success=False,
+                    message="No directives found or parsed successfully.",
+                )
+            ],
+        )
+
     execution: ExecutionResult | None = None
     function_results: list[FunctionResult] = []
     with DBConnection(connection_id) as dbc:

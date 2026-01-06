@@ -183,6 +183,15 @@ class TestRunner(unittest.TestCase):
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertTrue(result.success)
 
+    def test_sql_before_directive_fails(self) -> None:
+        path = Path("/tmp/sql_before_directive.sql")
+        path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
+        case = build_test_case(path)
+        self.assertEqual(len(case.segments), 0)
+        path.unlink()
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

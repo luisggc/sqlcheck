@@ -57,14 +57,6 @@ class TestMultiSegmentExecution(unittest.TestCase):
         self.assertEqual(len(result.function_results), 2)
         path.unlink()
 
-    def test_legacy_directive_after_sql_still_supported(self) -> None:
-        path = Path("/tmp/legacy.sql")
-        path.write_text("SELECT 1; {{ success() }}", encoding="utf-8")
-        case = build_test_case(path)
-        result = run_test_case(case, TEST_CONNECTION, default_registry())
-        self.assertTrue(result.success)
-        path.unlink()
-
     def test_session_reuse_across_segments(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             sql_path = Path(temp_dir) / "session.sql"

@@ -181,16 +181,7 @@ def _segment_sql_with_markers(
             ))
             pending_directive = None
             pending_sql = ""
-        elif pending_directive is None and sql_clean:
-            # SQL before directive - legacy style
-            statements = _split_statements(sql_clean)
-            segments.append(SQLSegment(
-                sql_parsed=SQLParsed(source=sql_clean, statements=statements),
-                directive=directive
-            ))
-            pending_sql = ""
-            cursor = marker_pos + len(marker.placeholder)
-            continue
+
 
         # Set current directive as pending
         pending_directive = directive
