@@ -11,7 +11,7 @@ def fail(
     match: str | None = None,
     **_kwargs: Any,
 ) -> FunctionResult:
-    expression = "success == false"
+    expression = "status == 'fail'"
     if match:
         expression = f"({expression}) && ({match})"
     result = assess(match=expression)
