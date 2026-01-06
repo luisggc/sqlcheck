@@ -57,6 +57,18 @@ def run_test_case(
     )
 
 
+def _format_query_output(rows: list[list[object]], columns: list[str] | None) -> str:
+    """Format query results as newline-separated values for stdout."""
+    if not columns:
+        return ""
+
+    parts = columns[:]
+    for row in rows:
+        parts.extend(str(val) if val is not None else "NULL" for val in row)
+
+    return "\n".join(parts)
+
+
 def _execute_segment(dbc: DBConnection, sql_parsed: SQLParsed, timeout: float | None = None) -> ExecutionResult:
     """Execute SQL using DBConnection and convert to ExecutionResult."""
     start = time.perf_counter()
@@ -73,15 +85,19 @@ def _execute_segment(dbc: DBConnection, sql_parsed: SQLParsed, timeout: float | 
             statements = []
 
         for statement in statements or []:
-            result = dbc.query(statement.text, fetch="auto")
+            result = dbc.query(statement.text, fetch="auto", include_columns=True)
             if result is not None:
-                rows = [list(row) for row in result]
+                result_rows, columns = result
+                rows = [list(row) for row in result_rows]
+                stdout = _format_query_output(rows, columns)
 
         # Handle case where no statements but source exists
         if not statements and sql_parsed.source.strip():
-            result = dbc.query(sql_parsed.source, fetch="auto")
+            result = dbc.query(sql_parsed.source, fetch="auto", include_columns=True)
             if result is not None:
-                rows = [list(row) for row in result]
+                result_rows, columns = result
+                rows = [list(row) for row in result_rows]
+                stdout = _format_query_output(rows, columns)
 
     except DBConnectionError as exc:
         success = False

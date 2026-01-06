@@ -104,8 +104,19 @@ class TestRunner(unittest.TestCase):
         self.assertTrue(result.success)
         path.unlink()
 
-    # Skipping test_assess_fixture_check_regex - requires fake adapter with stdout
-    # Skipping test_assess_fixture_check_complex_expression - requires fake adapter with specific rows
+    def test_assess_fixture_check_regex(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_check_regex.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_check_complex(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_check_complex.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
 
     def test_assess_fixture_check_comparisons(self) -> None:
         fixtures_dir = Path(__file__).resolve().parent / "fixtures"
@@ -133,6 +144,41 @@ class TestRunner(unittest.TestCase):
     def test_assess_fixture_result_cells_two(self) -> None:
         fixtures_dir = Path(__file__).resolve().parent / "fixtures"
         path = fixtures_dir / "assess_result_cells_two.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_stdout_contains_column(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_stdout_contains_column.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_stdout_contains_value(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_stdout_contains_value.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_stdout_multiple_columns(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_stdout_multiple_columns.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_stderr_contains_error(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_stderr_contains_error.sql"
+        case = build_test_case(path)
+        result = run_test_case(case, TEST_CONNECTION, default_registry())
+        self.assertTrue(result.success)
+
+    def test_assess_fixture_stderr_regex_match(self) -> None:
+        fixtures_dir = Path(__file__).resolve().parent / "fixtures"
+        path = fixtures_dir / "assess_stderr_regex_match.sql"
         case = build_test_case(path)
         result = run_test_case(case, TEST_CONNECTION, default_registry())
         self.assertTrue(result.success)
